@@ -146,20 +146,30 @@ fallback.
 
 This is René's **house-rule variant** — not generic Whist. The rules are encoded
 in [src/lib/scoring.js](src/lib/scoring.js) and pinned by
-[src/test/scoring.test.js](src/test/scoring.test.js).
+[src/test/scoring.test.js](src/test/scoring.test.js). The app also has a built-in
+read-only **Scoringsregler** button on the scoreboard with this full overview.
 
 - **30 contracts** in a fixed bidding order (ids 0–29):
   `7, 7 halve, 7 gode, 7 VIP, 8, 8 halve, 8 gode, 8 VIP, 9, Sol, 9 halve,
   9 gode, 9 VIP, 10, Ren sol, 10 halve, 10 gode, 10 VIP, 11, 11 halve, …, 13 VIP`.
   (Sol sits between 9 and 9 halve; Ren sol between 10 and 10 halve. No Sans, no
   Bordlægger.)
-- **Base points:** `basePoints = 10 + 7 × rank` (rank = the id). So `7` = 10,
-  `7 halve` = 17, `8` = 38, `9` = 66, `Sol` = 73, `10` = 101, `Ren sol` = 108.
-- **Ordinary number contracts** (incl. *halve* / *gode* / *VIP*, which only
-  change which suit is trump): the declarer side must take at least the contract
-  number of tricks.
-  - Success: `handPoints = basePoints + overtricks × 1`.
-  - Failure: `handPoints = basePoints + undertricks × 5`.
+- **Base points (non-VIP):** `basePoints = 10 + 7 × rank` (rank = the id). So `7`
+  = 10, `7 halve` = 17, `8` = 38, `9` = 66, `Sol` = 73, `10` = 101, `Ren sol` =
+  108.
+- **VIP base (special):** a VIP contract's base is **not** `10 + 7×rank`. It
+  depends on which exchanged ("vipped") card the declarer chose as trump:
+  `vipBase = (plain-number base) × position`, where position is 1/2/3 for the
+  1st/2nd/3rd VIP card (første/anden/tredje). E.g. `7 VIP i anden` = 10 × 2 = 20;
+  `8 VIP i tredje` = 38 × 3 = 114. The hand form asks **"Hvilket VIP-kort blev
+  trumf?"** and won't save a VIP hand until a card is picked. (Legacy v1 VIP
+  hands without a stored card keep their old score and are flagged "gammel
+  scoring".)
+- **Ordinary number contracts** (incl. *halve* / *gode* / *VIP* — *halve*/*gode*
+  only change which suit is trump): the declarer side must take at least the
+  contract number of tricks.
+  - Success: `handPoints = base + overtricks × 1`.
+  - Failure: `handPoints = base + undertricks × 5`.
   - (So bidding higher and making it beats bidding low for overtricks;
     undertricks hurt more than overtricks help.)
 - **Sol** (rank 9, base 73): declarer alone, may take **at most 1** trick.

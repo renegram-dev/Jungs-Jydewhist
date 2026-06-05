@@ -6,6 +6,7 @@ import { copyText, downloadTextFile, backupFilename } from '../lib/browser.js';
 import HandHistory from './HandHistory.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import ImportDialog from './ImportDialog.jsx';
+import ScoringRules from './ScoringRules.jsx';
 
 function signed(v) {
   if (v > 0) return `+${v}`;
@@ -16,6 +17,7 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
   const { activeSession, totals, lastSavedAt, saveError, actions } = useAppState();
   const [confirm, setConfirm] = useState(null); // 'reset' | null
   const [importOpen, setImportOpen] = useState(false);
+  const [rulesOpen, setRulesOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
   if (!activeSession) return null;
@@ -118,6 +120,9 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
         <button className="btn btn-secondary" onClick={() => setImportOpen(true)} data-testid="import-btn">
           Importér backup
         </button>
+        <button className="btn btn-secondary" onClick={() => setRulesOpen(true)} data-testid="rules-btn">
+          Scoringsregler
+        </button>
       </div>
 
       <HandHistory session={activeSession} onDeleteHand={(id) => actions.deleteHand(id)} />
@@ -146,6 +151,8 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
           }}
         />
       )}
+
+      {rulesOpen && <ScoringRules onClose={() => setRulesOpen(false)} />}
     </div>
   );
 }

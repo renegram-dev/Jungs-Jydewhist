@@ -5,6 +5,8 @@ import {
   getContract,
   calculateHandScore,
   validateScoreDelta,
+  isValidVipPosition,
+  vipPositionWord,
 } from '../lib/scoring.js';
 import { makeHand } from '../lib/storage.js';
 import { useAppState } from '../state/AppStateContext.jsx';
@@ -20,17 +22,20 @@ export default function NewHandForm({ onDone }) {
   const [partnerMode, setPartnerMode] = useState('partner'); // 'partner' | 'self'
   const [partner, setPartner] = useState(PLAYERS[1]);
   const [tricks, setTricks] = useState(7);
+  const [vipPosition, setVipPosition] = useState(null); // 1 | 2 | 3 for VIP
   const [manualOverride, setManualOverride] = useState(false);
   const [overrideDelta, setOverrideDelta] = useState(() => zeroDelta());
 
   const contract = getContract(contractId);
   const isSolo = contract.isSolo;
+  const isVip = contract.type === 'vip';
 
-  // Reset tricks to a sensible default when the contract changes.
+  // Reset tricks (and any VIP card) to sensible defaults when the contract changes.
   useEffect(() => {
     const c = getContract(contractId);
     if (c.isSolo) setTricks(c.type === 'rensol' ? 0 : 1);
     else setTricks(c.requiredTricks);
+    setVipPosition(null); // VIP card must be re-chosen per contract
   }, [contractId]);
 
   // Keep the partner valid when the declarer changes.
@@ -40,27 +45,29 @@ export default function NewHandForm({ onDone }) {
 
   const safePartner = partner && partner !== declarer ? partner : PLAYERS.find((p) => p !== declarer);
   const effectiveMode = isSolo ? 'solo' : partnerMode;
+  const vipReady = !isVip || isValidVipPosition(vipPosition);
 
-  const calc = useMemo(
-    () =>
-      calculateHandScore({
-        contractId,
-        declarer,
-        partnerMode: effectiveMode,
-        partner: effectiveMode === 'partner' ? safePartner : null,
-        tricks,
-      }),
-    [contractId, declarer, effectiveMode, safePartner, tricks],
-  );
+  // Only compute a score once VIP (if any) has a chosen trump card.
+  const calc = useMemo(() => {
+    if (!vipReady) return null;
+    return calculateHandScore({
+      contractId,
+      declarer,
+      partnerMode: effectiveMode,
+      partner: effectiveMode === 'partner' ? safePartner : null,
+      tricks,
+      vipPosition,
+    });
+  }, [contractId, declarer, effectiveMode, safePartner, tricks, vipPosition, vipReady]);
 
-  const effectiveDelta = manualOverride ? overrideDelta : calc.delta;
+  const effectiveDelta = manualOverride && calc ? overrideDelta : calc ? calc.delta : null;
   const overrideSum = PLAYERS.reduce((acc, p) => acc + (Number(overrideDelta[p]) || 0), 0);
   const overrideValid = !manualOverride || validateScoreDelta(overrideDelta);
-  const canSave = overrideValid;
+  const canSave = vipReady && !!calc && overrideValid;
 
   function toggleOverride(on) {
     setManualOverride(on);
-    if (on) setOverrideDelta({ ...calc.delta }); // seed from the calculated score
+    if (on && calc) setOverrideDelta({ ...calc.delta }); // seed from the calculated score
   }
 
   function setOverrideFor(player, raw) {
@@ -76,6 +83,7 @@ export default function NewHandForm({ onDone }) {
       partnerMode: effectiveMode,
       partner: effectiveMode === 'partner' ? safePartner : null,
       tricks,
+      vipPosition: isVip ? vipPosition : null,
       calc,
       manualOverride,
       delta: manualOverride ? overrideDelta : calc.delta,
@@ -123,6 +131,25 @@ export default function NewHandForm({ onDone }) {
             ))}
           </select>
         </div>
+
+        {isVip && (
+          <div className="field">
+            <span className="field-label">Hvilket VIP-kort blev trumf?</span>
+            <div className="segmented" role="group">
+              {[1, 2, 3].map((pos) => (
+                <button
+                  key={pos}
+                  type="button"
+                  className={`btn seg ${vipPosition === pos ? 'seg-active' : ''}`}
+                  onClick={() => setVipPosition(pos)}
+                  data-testid={`vip-${pos}`}
+                >
+                  {pos}. kort / {vipPositionWord(pos)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {isSolo ? (
           <div className="field">
@@ -175,50 +202,58 @@ export default function NewHandForm({ onDone }) {
           />
         </div>
 
-        <ScorePreview calc={calc} delta={effectiveDelta} manualOverride={manualOverride} />
+        {calc ? (
+          <>
+            <ScorePreview calc={calc} delta={effectiveDelta} manualOverride={manualOverride} />
 
-        <div className="field override">
-          <label className="checkbox-row">
-            <input
-              type="checkbox"
-              checked={manualOverride}
-              onChange={(e) => toggleOverride(e.target.checked)}
-              data-testid="override-toggle"
-            />
-            <span>Ret score manuelt</span>
-          </label>
+            <div className="field override">
+              <label className="checkbox-row">
+                <input
+                  type="checkbox"
+                  checked={manualOverride}
+                  onChange={(e) => toggleOverride(e.target.checked)}
+                  data-testid="override-toggle"
+                />
+                <span>Ret score manuelt</span>
+              </label>
 
-          {manualOverride && (
-            <div className="override-grid" data-testid="override-grid">
-              {PLAYERS.map((p) => (
-                <div key={p} className="override-cell">
-                  <label className="field-label">{p}</label>
-                  <input
-                    className="input"
-                    type="number"
-                    step="1"
-                    value={overrideDelta[p]}
-                    onChange={(e) => setOverrideFor(p, e.target.value)}
-                    data-testid={`override-${p}`}
-                  />
+              {manualOverride && (
+                <div className="override-grid" data-testid="override-grid">
+                  {PLAYERS.map((p) => (
+                    <div key={p} className="override-cell">
+                      <label className="field-label">{p}</label>
+                      <input
+                        className="input"
+                        type="number"
+                        step="1"
+                        value={overrideDelta[p]}
+                        onChange={(e) => setOverrideFor(p, e.target.value)}
+                        data-testid={`override-${p}`}
+                      />
+                    </div>
+                  ))}
+                  <div className="override-sum">
+                    <button type="button" className="btn btn-secondary" onClick={() => setOverrideDelta({ ...calc.delta })}>
+                      Nulstil til beregnet
+                    </button>
+                    <span className={overrideValid ? 'ok' : 'bad'} data-testid="override-sum">
+                      Sum: {overrideSum}
+                    </span>
+                  </div>
+                  {!overrideValid && (
+                    <p className="error" data-testid="override-error">
+                      Manuel score skal gå op i nul (summen er {overrideSum}).
+                    </p>
+                  )}
                 </div>
-              ))}
-              <div className="override-sum">
-                <button type="button" className="btn btn-secondary" onClick={() => setOverrideDelta({ ...calc.delta })}>
-                  Nulstil til beregnet
-                </button>
-                <span className={overrideValid ? 'ok' : 'bad'} data-testid="override-sum">
-                  Sum: {overrideSum}
-                </span>
-              </div>
-              {!overrideValid && (
-                <p className="error" data-testid="override-error">
-                  Manuel score skal gå op i nul (summen er {overrideSum}).
-                </p>
               )}
             </div>
-          )}
-        </div>
+          </>
+        ) : (
+          <p className="note" data-testid="vip-required-note">
+            Vælg hvilket VIP-kort der blev trumf for at se og gemme scoren.
+          </p>
+        )}
       </div>
 
       <div className="action-bar">

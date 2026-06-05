@@ -9,7 +9,13 @@
 // loadAppState / saveAppState actually touch localStorage; the React reducer is
 // the single place that calls saveAppState.
 
-import { PLAYERS, getContract, calculateHandScore, validateScoreDelta } from './scoring.js';
+import {
+  PLAYERS,
+  getContract,
+  calculateHandScore,
+  validateScoreDelta,
+  isValidVipPosition,
+} from './scoring.js';
 
 const STORAGE_KEY = 'jungs-jydewhist.v1';
 const SCHEMA_VERSION = 1;
@@ -159,7 +165,7 @@ export function deleteSession(state, id) {
 }
 
 // Build a Hand from a scoring result (+ optional manual override delta).
-export function makeHand({ contractId, declarer, partnerMode, partner, tricks, calc, manualOverride, delta }) {
+export function makeHand({ contractId, declarer, partnerMode, partner, tricks, vipPosition, calc, manualOverride, delta }) {
   return {
     id: newId(),
     timestamp: new Date().toISOString(),
@@ -169,6 +175,7 @@ export function makeHand({ contractId, declarer, partnerMode, partner, tricks, c
     partnerMode,
     partner: partnerMode === 'partner' ? partner : null,
     tricks,
+    vipPosition: vipPosition ?? calc.vipPosition ?? null,
     success: calc.success,
     delta: { ...(delta || calc.delta) },
     explanation: calc.explanation,
@@ -244,6 +251,13 @@ function validateImportedHand(h) {
 
   if (!validateScoreDelta(h.delta)) return 'Score-delta er ikke nul-sum / mangler spillere.';
 
+  // VIP hands: a current-version hand carries vipPosition 1/2/3. A v1 "legacy"
+  // VIP hand has none — accept it (already passed the zero-sum check) and keep
+  // its stored delta rather than recomputing.
+  if (contract.type === 'vip' && !isValidVipPosition(h.vipPosition)) {
+    return null; // legacy VIP hand — keep stored delta
+  }
+
   // Data-integrity guard: a non-overridden hand must match recomputed scoring.
   if (!h.manualOverride) {
     const calc = calculateHandScore({
@@ -252,6 +266,7 @@ function validateImportedHand(h) {
       partnerMode: h.partnerMode,
       partner: h.partner,
       tricks: h.tricks,
+      vipPosition: h.vipPosition,
     });
     if (calc.success !== !!h.success) return 'Resultat (vundet/tabt) matcher ikke beregningen.';
     for (const p of PLAYERS) {
@@ -263,6 +278,8 @@ function validateImportedHand(h) {
 
 function normalizeImportedHand(h) {
   const contract = getContract(h.contractId);
+  const vipPosition =
+    contract.type === 'vip' && isValidVipPosition(h.vipPosition) ? h.vipPosition : null;
   return {
     id: newId(),
     timestamp: typeof h.timestamp === 'string' ? h.timestamp : new Date().toISOString(),
@@ -272,6 +289,7 @@ function normalizeImportedHand(h) {
     partnerMode: h.partnerMode,
     partner: h.partnerMode === 'partner' ? h.partner : null,
     tricks: h.tricks,
+    vipPosition,
     success: !!h.success,
     delta: { ...h.delta },
     explanation: typeof h.explanation === 'string' ? h.explanation : '',

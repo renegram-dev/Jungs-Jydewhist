@@ -254,3 +254,23 @@ h2 { font-size: 20px; margin: 8px 0; }
 .row-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .row-actions .btn { flex: 1; min-width: 88px; }
 .session-rename { display: flex; flex-direction: column; gap: 8px; }
+
+/* Scoring rules overview */
+.rules-section { margin-bottom: 18px; }
+.rules-section h3 { margin: 0 0 6px; font-size: 18px; color: var(--pos); }
+.rules-section ul { margin: 4px 0; padding-left: 20px; }
+.rules-section li { margin: 3px 0; }
+.rules-formula {
+  font-family: ui-monospace, monospace;
+  background: var(--panel);
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 14px;
+  margin: 6px 0;
+  overflow-x: auto;
+}
+.rules-examples { columns: 2; -webkit-columns: 2; font-variant-numeric: tabular-nums; }
+.rules-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.rules-table th, .rules-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--panel-2); }
+.rules-table th { color: var(--muted); }
+.rules-table .vip-row td { color: #ffdf8a; }

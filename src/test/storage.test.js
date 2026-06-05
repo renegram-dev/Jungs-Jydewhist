@@ -139,6 +139,44 @@ describe('export / import', () => {
   });
 });
 
+// A real VIP hand: 7 VIP (contractId 3) with Thomas, 7 tricks, chosen position.
+function vipHand(pos) {
+  const input = { contractId: 3, declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 7, vipPosition: pos };
+  const calc = calculateHandScore(input);
+  return makeHand({ ...input, calc, manualOverride: false });
+}
+
+describe('VIP import handling', () => {
+  it('round-trips a VIP hand, preserving vipPosition and score', () => {
+    const session = { name: 'VIP', players: [...PLAYERS], hands: [vipHand(2)] };
+    const result = importAppState(createDefaultState(), JSON.stringify(session));
+    expect(result.ok).toBe(true);
+    const imported = result.state.sessions[result.state.sessions.length - 1];
+    expect(imported.hands[0].vipPosition).toBe(2);
+    expect(imported.hands[0].delta[RENE]).toBe(20);
+  });
+
+  it('accepts a legacy VIP hand without vipPosition and keeps its stored delta', () => {
+    const legacy = vipHand(2);
+    delete legacy.vipPosition; // v1-style hand
+    const session = { name: 'Gammel VIP', players: [...PLAYERS], hands: [legacy] };
+    const result = importAppState(createDefaultState(), JSON.stringify(session));
+    expect(result.ok).toBe(true);
+    const imported = result.state.sessions[result.state.sessions.length - 1];
+    expect(imported.hands[0].vipPosition).toBeNull();
+    expect(imported.hands[0].delta[RENE]).toBe(20); // stored delta kept
+  });
+
+  it('rejects a non-legacy VIP hand whose delta does not match its position', () => {
+    const bad = vipHand(2); // genuinely ±20
+    bad.delta = { [RENE]: 21, [THOMAS]: 21, [CARSTEN]: -21, [TOM]: -21 }; // zero-sum but wrong for pos 2
+    const session = { name: 'Forkert VIP', players: [...PLAYERS], hands: [bad] };
+    const result = importAppState(createDefaultState(), JSON.stringify(session));
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/beregn/i);
+  });
+});
+
 describe('localStorage load/save (jsdom)', () => {
   beforeEach(() => localStorage.clear());
 

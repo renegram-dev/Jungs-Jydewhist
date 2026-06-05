@@ -168,9 +168,10 @@ describe('validateScoreDelta — case 10 and friends', () => {
 });
 
 describe('every computed delta is zero-sum (property check)', () => {
-  it('holds across many contracts, modes and trick counts', () => {
+  it('holds across many contracts, modes, VIP positions and trick counts', () => {
     const list = getContractList();
     for (const c of list) {
+      const positions = c.type === 'vip' ? [1, 2, 3] : [undefined];
       for (let tricks = 0; tricks <= 13; tricks++) {
         const modes = c.isSolo
           ? [{ mode: 'solo', partner: null }]
@@ -179,12 +180,14 @@ describe('every computed delta is zero-sum (property check)', () => {
               { mode: 'self', partner: null },
             ];
         for (const { mode, partner } of modes) {
-          const r = calculateHandScore({
-            contractId: c.id, declarer: RENE, partnerMode: mode, partner, tricks,
-          });
-          const sum = PLAYERS.reduce((acc, p) => acc + r.delta[p], 0);
-          expect(sum).toBe(0);
-          expect(validateScoreDelta(r.delta)).toBe(true);
+          for (const vipPosition of positions) {
+            const r = calculateHandScore({
+              contractId: c.id, declarer: RENE, partnerMode: mode, partner, tricks, vipPosition,
+            });
+            const sum = PLAYERS.reduce((acc, p) => acc + r.delta[p], 0);
+            expect(sum).toBe(0);
+            expect(validateScoreDelta(r.delta)).toBe(true);
+          }
         }
       }
     }
@@ -232,5 +235,112 @@ describe('summarizeHand', () => {
       delta: { [RENE]: 219, [THOMAS]: -73, [CARSTEN]: -73, [TOM]: -73 },
     };
     expect(summarizeHand(hand, 2).startsWith('#2 René — Sol')).toBe(true);
+  });
+});
+
+describe('VIP scoring — base = plain-number base × VIP position', () => {
+  it('contract metadata exposes the plain-number base for VIP contracts', () => {
+    expect(getContract(idOf('7 VIP')).plainBasePoints).toBe(10);
+    expect(getContract(idOf('8 VIP')).plainBasePoints).toBe(38);
+    expect(getContract(idOf('9 VIP')).plainBasePoints).toBe(66);
+    expect(getContract(idOf('10 VIP')).plainBasePoints).toBe(101);
+  });
+
+  it('1) 7 VIP i første with Thomas, 7 tricks -> base 10, +-10', () => {
+    const r = calculateHandScore({
+      contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 7, vipPosition: 1,
+    });
+    expect(r.basePoints).toBe(10);
+    expect(r.handPoints).toBe(10);
+    expect(r.delta).toEqual({ [RENE]: 10, [THOMAS]: 10, [CARSTEN]: -10, [TOM]: -10 });
+  });
+
+  it('2) 7 VIP i anden with Thomas, 7 tricks -> base 20, +-20', () => {
+    const r = calculateHandScore({
+      contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 7, vipPosition: 2,
+    });
+    expect(r.basePoints).toBe(20);
+    expect(r.handPoints).toBe(20);
+    expect(r.delta).toEqual({ [RENE]: 20, [THOMAS]: 20, [CARSTEN]: -20, [TOM]: -20 });
+    expect(r.explanation).toContain('VIP i anden: basis = 20 (7 uden benævnelse 10 × 2)');
+  });
+
+  it('3) 7 VIP i tredje with Thomas, 7 tricks -> base 30, +-30', () => {
+    const r = calculateHandScore({
+      contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 7, vipPosition: 3,
+    });
+    expect(r.basePoints).toBe(30);
+    expect(r.delta).toEqual({ [RENE]: 30, [THOMAS]: 30, [CARSTEN]: -30, [TOM]: -30 });
+  });
+
+  it('4) 7 VIP i anden, 8 tricks -> +1 over, handPoints 21', () => {
+    const r = calculateHandScore({
+      contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 8, vipPosition: 2,
+    });
+    expect(r.overtricks).toBe(1);
+    expect(r.handPoints).toBe(21);
+    expect(r.delta).toEqual({ [RENE]: 21, [THOMAS]: 21, [CARSTEN]: -21, [TOM]: -21 });
+  });
+
+  it('5) 7 VIP i anden, 6 tricks -> 1 under, handPoints 25, lost', () => {
+    const r = calculateHandScore({
+      contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 6, vipPosition: 2,
+    });
+    expect(r.success).toBe(false);
+    expect(r.undertricks).toBe(1);
+    expect(r.handPoints).toBe(25);
+    expect(r.delta).toEqual({ [RENE]: -25, [THOMAS]: -25, [CARSTEN]: 25, [TOM]: 25 });
+  });
+
+  it('6) 8 VIP i tredje self-partner, 8 tricks -> base 114, +342 / -114', () => {
+    const r = calculateHandScore({
+      contractId: idOf('8 VIP'), declarer: RENE, partnerMode: 'self', partner: null, tricks: 8, vipPosition: 3,
+    });
+    expect(r.basePoints).toBe(114);
+    expect(r.handPoints).toBe(114);
+    expect(r.delta).toEqual({ [RENE]: 342, [THOMAS]: -114, [CARSTEN]: -114, [TOM]: -114 });
+  });
+
+  it('7) a VIP hand without a vipPosition is rejected (throws)', () => {
+    expect(() =>
+      calculateHandScore({
+        contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 7,
+      }),
+    ).toThrow();
+    expect(() =>
+      calculateHandScore({
+        contractId: idOf('7 VIP'), declarer: RENE, partnerMode: 'partner', partner: THOMAS, tricks: 7, vipPosition: 4,
+      }),
+    ).toThrow();
+  });
+
+  it('8) non-VIP scoring is unchanged (9 gode still 10 + 7*11 = 87 base)', () => {
+    const gode = getContract(idOf('9 gode'));
+    expect(gode.basePoints).toBe(10 + 7 * gode.id);
+    const r = calculateHandScore({
+      contractId: idOf('9 gode'), declarer: RENE, partnerMode: 'partner', partner: TOM, tricks: 9,
+    });
+    expect(r.basePoints).toBe(gode.basePoints);
+    expect(r.handPoints).toBe(gode.basePoints);
+  });
+
+  it('summarizeHand shows the VIP position', () => {
+    const hand = {
+      declarer: RENE, partnerMode: 'partner', partner: TOM,
+      contractId: idOf('7 VIP'), contractLabel: '7 VIP', tricks: 8, success: true, vipPosition: 2,
+      delta: { [RENE]: 21, [TOM]: 21, [THOMAS]: -21, [CARSTEN]: -21 },
+    };
+    expect(summarizeHand(hand, 3)).toBe(
+      '#3 René + Tom — 7 VIP i anden — 8 stik — Vundet — René +21, Thomas -21, Carsten -21, Tom +21',
+    );
+  });
+
+  it('summarizeHand flags a legacy VIP hand without a position', () => {
+    const hand = {
+      declarer: RENE, partnerMode: 'partner', partner: TOM,
+      contractId: idOf('7 VIP'), contractLabel: '7 VIP', tricks: 7, success: true,
+      delta: { [RENE]: 31, [TOM]: 31, [THOMAS]: -31, [CARSTEN]: -31 },
+    };
+    expect(summarizeHand(hand, 1)).toContain('7 VIP (gammel scoring)');
   });
 });

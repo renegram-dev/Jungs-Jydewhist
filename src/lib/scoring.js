@@ -32,6 +32,14 @@ function deriveType(label) {
   return 'plain';
 }
 
+// Base points of the PLAIN number contract for each trick number, e.g. 7 -> 10,
+// 8 -> 38, 9 -> 66, 10 -> 101, 11 -> 136, 12 -> 164, 13 -> 192. VIP scoring is
+// derived from these (VIP base = plain base * vipPosition).
+const PLAIN_BASE_BY_NUMBER = {};
+CONTRACT_LABELS.forEach((label, id) => {
+  if (deriveType(label) === 'plain') PLAIN_BASE_BY_NUMBER[parseInt(label, 10)] = 10 + 7 * id;
+});
+
 const CONTRACTS = Object.freeze(
   CONTRACT_LABELS.map((label, id) => {
     const type = deriveType(label);
@@ -45,7 +53,9 @@ const CONTRACTS = Object.freeze(
       type, // 'plain' | 'halve' | 'gode' | 'vip' | 'sol' | 'rensol'
       isSolo,
       requiredTricks,
-      basePoints: 10 + 7 * id,
+      basePoints: 10 + 7 * id, // used for all non-VIP contracts
+      // Plain-number base for the same trick count — the multiplier base for VIP.
+      plainBasePoints: isSolo ? null : PLAIN_BASE_BY_NUMBER[requiredTricks],
     });
   }),
 );
@@ -66,6 +76,19 @@ const MAX_TRICKS = 13;
 /** True when n is an integer in [0, 13]. */
 export function isValidTricks(n) {
   return Number.isInteger(n) && n >= MIN_TRICKS && n <= MAX_TRICKS;
+}
+
+// VIP trump card position -> Danish word.
+const VIP_WORDS = { 1: 'første', 2: 'anden', 3: 'tredje' };
+
+/** Danish word for a VIP position (1->første, 2->anden, 3->tredje). */
+export function vipPositionWord(pos) {
+  return VIP_WORDS[pos] || '';
+}
+
+/** True when pos is a valid VIP position (1, 2 or 3). */
+export function isValidVipPosition(pos) {
+  return pos === 1 || pos === 2 || pos === 3;
 }
 
 // Distribute handPoints across the four players. Always zero-sum.
@@ -102,6 +125,7 @@ function buildDelta({ players, declarer, partner, mode, handPoints, success }) {
  *   partnerMode,           // 'partner' | 'self' | 'solo' (forced to 'solo' for Sol/Ren sol)
  *   partner,               // player name when partnerMode === 'partner', else null
  *   tricks,                // integer 0..13 (declarer-side tricks, or declarer tricks for solo)
+ *   vipPosition,           // 1 | 2 | 3 — REQUIRED for VIP contracts (which exchanged card is trump)
  *   players,               // optional array of 4 names; defaults to PLAYERS
  * }
  *
@@ -115,13 +139,27 @@ export function calculateHandScore(input) {
     partnerMode,
     partner,
     tricks,
+    vipPosition,
     players = PLAYERS,
   } = input;
 
   const contract = CONTRACTS[contractId];
   if (!contract) throw new Error(`Unknown contractId: ${contractId}`);
 
-  const base = contract.basePoints;
+  // Base points. For VIP contracts the base depends on which exchanged ("vipped")
+  // card became trump: base = plain-number base * vipPosition (1/2/3).
+  let base = contract.basePoints;
+  let vipPrefix = '';
+  if (contract.type === 'vip') {
+    if (!isValidVipPosition(vipPosition)) {
+      throw new Error('VIP-kontrakt kræver vipPosition 1, 2 eller 3.');
+    }
+    base = contract.plainBasePoints * vipPosition;
+    vipPrefix =
+      `VIP i ${vipPositionWord(vipPosition)}: basis = ${base} ` +
+      `(${contract.requiredTricks} uden benævnelse ${contract.plainBasePoints} × ${vipPosition}). `;
+  }
+
   let success;
   let handPoints;
   let requiredTricks = contract.requiredTricks;
@@ -156,6 +194,7 @@ export function calculateHandScore(input) {
       overtricks = tricks - requiredTricks;
       handPoints = base + overtricks * 1;
       explanation =
+        vipPrefix +
         `${contract.label} kræver ${requiredTricks} stik, fik ${tricks} → Vundet` +
         (overtricks ? `, +${overtricks} overstik (à 1)` : '') +
         `, ${handPoints} point.`;
@@ -163,6 +202,7 @@ export function calculateHandScore(input) {
       undertricks = requiredTricks - tricks;
       handPoints = base + undertricks * 5;
       explanation =
+        vipPrefix +
         `${contract.label} kræver ${requiredTricks} stik, fik ${tricks} → Tabt, ` +
         `${undertricks} understik à 5 → ${handPoints} point.`;
     }
@@ -179,6 +219,7 @@ export function calculateHandScore(input) {
     requiredTricks: contract.isSolo ? null : requiredTricks,
     actualTricks: tricks,
     basePoints: base,
+    vipPosition: contract.type === 'vip' ? vipPosition : null,
     overtricks,
     undertricks,
     handPoints,
@@ -219,7 +260,14 @@ function formatSigned(v) {
 export function summarizeHand(hand, displayNumber, players = PLAYERS) {
   const n = displayNumber ?? hand.handNumber ?? '?';
   const contract = CONTRACTS[hand.contractId];
-  const label = hand.contractLabel || (contract ? contract.label : `#${hand.contractId}`);
+  let label = hand.contractLabel || (contract ? contract.label : `#${hand.contractId}`);
+
+  // VIP hands show the chosen trump card ("7 VIP i anden"); legacy v1 VIP hands
+  // without a stored position are flagged so their old score is still readable.
+  if (contract && contract.type === 'vip') {
+    if (isValidVipPosition(hand.vipPosition)) label = `${label} i ${vipPositionWord(hand.vipPosition)}`;
+    else label = `${label} (gammel scoring)`;
+  }
 
   let who;
   if (hand.partnerMode === 'partner' && hand.partner) {

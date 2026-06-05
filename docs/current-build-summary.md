@@ -40,12 +40,22 @@ supports JSON backup export/import. It is **not** a card game.
 - Import requires the player set to be exactly René, Thomas, Carsten, Tom.
 - Playwright smoke needs Chromium downloaded once (`npx playwright install chromium`).
 
+## VIP scoring (house rule)
+VIP contracts do not use the flat `10 + 7×rank` base. The declarer picks which
+exchanged ("vipped") card became trump, and `vipBase = plain-number base ×
+position` (1./2./3. kort = ×1/×2/×3). The hand form requires the VIP card before
+saving; legacy v1 VIP hands (no stored position) keep their old delta and are
+shown as "(gammel scoring)". `vipPosition` is stored on the hand and validated on
+import. There's also a read-only **Scoringsregler** overview in-app.
+
 ## Validation status (this build)
-- ✅ `npm test` — 36 unit tests pass (scoring incl. all 9 worked numeric cases +
-  the non-zero-sum rejection, zero-sum property check, storage round-trip &
-  rejections).
+- ✅ `npm test` — 50 unit tests pass (scoring incl. all worked numeric cases, the
+  full VIP-by-position set + the reject-without-position case, non-zero-sum
+  rejection, zero-sum property sweep; storage round-trip, VIP round-trip + legacy
+  acceptance, and rejections).
 - ✅ `npm run build` — production build succeeds.
-- ✅ `npm run smoke` — Playwright Chromium: load → add hand (René 7 w/ Thomas, 7
-  tricks → ±10) → reload persists → undo zeroes totals. **Automated path used.**
+- ✅ `npm run smoke` — Playwright Chromium, 3 tests: core (load → add hand → reload
+  persists → undo zeroes), VIP (card required before save → scores by position),
+  and Scoringsregler (overview opens with key text). **Automated path used.**
 - ⏳ Manual iPhone-over-Wi-Fi pass — see
   [validation-checklist.md](validation-checklist.md); to be done on René's phone.
