@@ -255,6 +255,27 @@ h2 { font-size: 20px; margin: 8px 0; }
 .row-actions .btn { flex: 1; min-width: 88px; }
 .session-rename { display: flex; flex-direction: column; gap: 8px; }
 
+/* Shared ("Delt spil") mode bar */
+.shared-bar {
+  background: var(--panel);
+  border: 1px solid var(--panel-2);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin-bottom: 14px;
+}
+.shared-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+.mode-badge { font-size: 13px; padding: 4px 10px; }
+.mode-badge.local { background: var(--panel-2); color: var(--muted); }
+.mode-badge.shared { background: var(--green); color: #fff; }
+.conn { font-size: 13px; color: var(--muted); }
+.conn.connected { color: var(--pos); }
+.conn.syncing, .conn.connecting { color: var(--warn); }
+.conn.offline, .conn.error { color: var(--neg); }
+.shared-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.shared-actions .btn { flex: 1; min-width: 130px; }
+.room-code { font-size: 16px; flex-basis: 100%; }
+.room-code strong { font-variant-numeric: tabular-nums; letter-spacing: 1px; font-size: 19px; }
+
 /* Scoring rules overview */
 .rules-section { margin-bottom: 18px; }
 .rules-section h3 { margin: 0 0 6px; font-size: 18px; color: var(--pos); }

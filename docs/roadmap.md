@@ -4,9 +4,20 @@ Future ideas, intentionally **out of scope** for the MVP. Pull one in only with
 explicit approval (see [../CLAUDE.md](../CLAUDE.md)).
 
 ## Persistence & sync
-- Optional backend / cloud sync so data survives device or browser changes.
-- Shared **live scoreboard** across devices during a game.
+- ✅ **Shared live scoreboard** across devices — implemented as "Delt spil"
+  (Cloud Firestore + anonymous auth, host edits, viewers read-only, live
+  `onSnapshot`). See [current-build-summary.md](current-build-summary.md).
 - Conflict-free merge of imported backups (currently import = new session only).
+- Optional sync of *local* sessions to the cloud (currently local stays local).
+
+## Shared mode (Firebase) follow-ups
+- **App Check / abuse mitigation** so anonymous users can't spam game creation.
+- Auto-clean or TTL for old shared games (Firestore usage hygiene).
+- "Kopiér lokal session til delt spil" as a distinct action (today "Start delt
+  spil" seeds from the current local session).
+- Host hand-off / multiple hosts; viewer presence ("hvem ser med").
+- Commit a `firebase.json` + add a `deploy:rules` npm script for one-command
+  rules deploys.
 
 ## Players
 - **Player editing** (rename, add/remove, more than four) — deliberately omitted

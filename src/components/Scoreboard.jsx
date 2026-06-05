@@ -7,6 +7,7 @@ import HandHistory from './HandHistory.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
 import ImportDialog from './ImportDialog.jsx';
 import ScoringRules from './ScoringRules.jsx';
+import SharedBar from './SharedBar.jsx';
 
 function signed(v) {
   if (v > 0) return `+${v}`;
@@ -14,23 +15,34 @@ function signed(v) {
 }
 
 export default function Scoreboard({ onNewHand, onOpenSessions }) {
-  const { activeSession, totals, lastSavedAt, saveError, actions } = useAppState();
+  const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, actions } = useAppState();
   const [confirm, setConfirm] = useState(null); // 'reset' | null
   const [importOpen, setImportOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [toast, setToast] = useState(null);
-
-  if (!activeSession) return null;
-
-  const order = sortedByScore(totals);
-  const zeroSum = totalsAreZeroSum(totals);
-  const handCount = activeSession.hands.length;
 
   function flash(msg) {
     setToast(msg);
     window.clearTimeout(flash._t);
     flash._t = window.setTimeout(() => setToast(null), 3000);
   }
+
+  // In shared mode the session may briefly be null while connecting.
+  if (!activeSession) {
+    return (
+      <div className="screen" data-testid="scoreboard">
+        <header className="screen-header column">
+          <h1 data-testid="app-title">Jungs-Jydewhist</h1>
+        </header>
+        <SharedBar />
+        {isShared && <p className="note">Forbinder til delt spil…</p>}
+      </div>
+    );
+  }
+
+  const order = sortedByScore(totals);
+  const zeroSum = totalsAreZeroSum(totals);
+  const handCount = activeSession.hands.length;
 
   async function handleCopy() {
     const ok = await copyText(buildScoreText(activeSession));
@@ -46,19 +58,23 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
     <div className="screen" data-testid="scoreboard">
       <header className="screen-header column">
         <h1 data-testid="app-title">Jungs-Jydewhist</h1>
-        <button className="session-name" onClick={onOpenSessions} data-testid="active-session-name">
-          {activeSession.name} ▾
+        <button className="session-name" onClick={onOpenSessions} disabled={isShared} data-testid="active-session-name">
+          {activeSession.name} {!isShared && '▾'}
         </button>
-        <div className="saved-indicator" data-testid="saved-indicator">
-          {saveError ? (
-            <span className="bad">⚠ {saveError}</span>
-          ) : lastSavedAt ? (
-            <span className="ok">✓ Gemt lokalt kl. {lastSavedAt.toLocaleTimeString('da-DK')}</span>
-          ) : (
-            <span>Gemmes lokalt i denne browser</span>
-          )}
-        </div>
+        {!isShared && (
+          <div className="saved-indicator" data-testid="saved-indicator">
+            {saveError ? (
+              <span className="bad">⚠ {saveError}</span>
+            ) : lastSavedAt ? (
+              <span className="ok">✓ Gemt lokalt kl. {lastSavedAt.toLocaleTimeString('da-DK')}</span>
+            ) : (
+              <span>Gemmes lokalt i denne browser</span>
+            )}
+          </div>
+        )}
       </header>
+
+      <SharedBar />
 
       {!zeroSum && (
         <div className="warning" data-testid="zero-sum-warning">
@@ -86,51 +102,61 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
       {toast && <div className="toast" data-testid="toast">{toast}</div>}
 
       <div className="button-grid">
-        <button className="btn btn-primary big" onClick={onNewHand} data-testid="new-hand-btn">
-          Nyt spil
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => actions.undoLast()}
-          disabled={handCount === 0}
-          data-testid="undo-btn"
-        >
-          Fortryd seneste spil
-        </button>
-        <button
-          className="btn btn-danger"
-          onClick={() => setConfirm('reset')}
-          disabled={handCount === 0}
-          data-testid="reset-btn"
-        >
-          Nulstil aktuel session
-        </button>
-        <button className="btn btn-secondary" onClick={() => actions.createSession()} data-testid="new-session-btn">
-          Ny session
-        </button>
-        <button className="btn btn-secondary" onClick={onOpenSessions} data-testid="choose-session-btn">
-          Vælg session
-        </button>
+        {canEdit && (
+          <>
+            <button className="btn btn-primary big" onClick={onNewHand} data-testid="new-hand-btn">
+              Nyt spil
+            </button>
+            <button
+              className="btn btn-secondary"
+              onClick={() => actions.undoLast()}
+              disabled={handCount === 0}
+              data-testid="undo-btn"
+            >
+              Fortryd seneste spil
+            </button>
+            <button
+              className="btn btn-danger"
+              onClick={() => setConfirm('reset')}
+              disabled={handCount === 0}
+              data-testid="reset-btn"
+            >
+              Nulstil aktuel session
+            </button>
+          </>
+        )}
+
+        {!isShared && (
+          <>
+            <button className="btn btn-secondary" onClick={() => actions.createSession()} data-testid="new-session-btn">
+              Ny session
+            </button>
+            <button className="btn btn-secondary" onClick={onOpenSessions} data-testid="choose-session-btn">
+              Vælg session
+            </button>
+            <button className="btn btn-secondary" onClick={handleExport} data-testid="export-btn">
+              Eksportér backup
+            </button>
+            <button className="btn btn-secondary" onClick={() => setImportOpen(true)} data-testid="import-btn">
+              Importér backup
+            </button>
+          </>
+        )}
+
         <button className="btn btn-secondary" onClick={handleCopy} data-testid="copy-btn">
           Kopiér score
-        </button>
-        <button className="btn btn-secondary" onClick={handleExport} data-testid="export-btn">
-          Eksportér backup
-        </button>
-        <button className="btn btn-secondary" onClick={() => setImportOpen(true)} data-testid="import-btn">
-          Importér backup
         </button>
         <button className="btn btn-secondary" onClick={() => setRulesOpen(true)} data-testid="rules-btn">
           Scoringsregler
         </button>
       </div>
 
-      <HandHistory session={activeSession} onDeleteHand={(id) => actions.deleteHand(id)} />
+      <HandHistory session={activeSession} canEdit={canEdit} onDeleteHand={(id) => actions.deleteHand(id)} />
 
       {confirm === 'reset' && (
         <ConfirmDialog
           title="Nulstil aktuel session?"
-          message={`Alle ${handCount} spil i "${activeSession.name}" slettes. Spillets navn og spillere beholdes.`}
+          message={`Alle ${handCount} spil i "${activeSession.name}" slettes.`}
           confirmLabel="Nulstil"
           danger
           onConfirm={() => {

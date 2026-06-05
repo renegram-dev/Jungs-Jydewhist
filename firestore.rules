@@ -1,0 +1,40 @@
+rules_version = '2';
+
+// Security model for Jungs-Jydewhist "Delt spil" (shared games):
+//   - Auth required for everything (anonymous auth is fine).
+//   - The room code acts as a shared secret: any signed-in user who knows a code
+//     may READ that one document (get). Listing all games is denied.
+//   - Only the host (the uid that created the game) may create/update/delete it,
+//     and the host field is immutable on update.
+//
+// Deploy (no CLI needed): Firebase Console → Firestore Database → Rules →
+// paste this file → Publish. Or `firebase deploy --only firestore:rules`
+// (see README → "Delt spil").
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    match /sharedGames/{roomCode} {
+      // Read a single game by code; no listing/enumeration of all games.
+      allow get: if request.auth != null;
+      allow list: if false;
+
+      // Create: must be signed in and set yourself as host.
+      allow create: if request.auth != null
+        && request.resource.data.hostUid == request.auth.uid;
+
+      // Update: only the host; the host field is immutable.
+      // (Split from delete so that delete — where request.resource is null —
+      //  is not blocked by the immutability check.)
+      allow update: if request.auth != null
+        && resource.data.hostUid == request.auth.uid
+        && request.resource.data.hostUid == resource.data.hostUid;
+
+      // Delete: only the host.
+      allow delete: if request.auth != null
+        && resource.data.hostUid == request.auth.uid;
+    }
+
+    // Everything else is denied by default.
+  }
+}

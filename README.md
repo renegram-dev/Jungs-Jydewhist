@@ -106,6 +106,67 @@ the phone as the primary saved state if you play from it.
   The player set must be exactly René, Thomas, Carsten, Tom or the import is
   rejected.
 
+## Delt spil (shared game mode)
+
+By default the app runs in **local mode** (localStorage, one device). It also has
+an optional **shared mode ("Delt spil")** backed by **Cloud Firestore** so several
+phones can watch the same game live.
+
+- **Local mode** — localStorage is the source of truth (unchanged). Badge: **Lokal**.
+- **Shared mode** — **Firestore is the source of truth** for that game. The host
+  edits; everyone else is read-only; all phones update live via Firestore
+  `onSnapshot`. Badges: **Delt vært** (host) / **Delt visning** (viewer).
+
+Auth is **Firebase Anonymous Auth** — no usernames or passwords. The two modes are
+kept separate; local sessions and shared games are not auto-merged.
+
+### Create / join a shared game
+- **Host:** on the scoreboard tap **Start delt spil**. The app signs in
+  anonymously, creates `sharedGames/{roomCode}` (seeded from your current local
+  session), and shows the **room code** and **Kopiér delt link**.
+- **Join:** open the share link
+  `https://renegram-dev.github.io/Jungs-Jydewhist/?room=<roomCode>` (auto-joins),
+  or tap **Deltag i delt spil** and type the code. You join as a **read-only
+  viewer** (unless you are the host on that device).
+- **Viewers** can see the scoreboard, history, Scoringsregler, and Kopiér score,
+  but cannot add/undo/clear/delete hands or import into the shared game.
+
+### Firebase setup (one-time, by the project owner)
+The web config lives in [src/firebase.config.js](src/firebase.config.js) — it is
+**not a secret** (security comes from Firestore rules). Steps:
+1. Firebase Console → create a project → add a **Web app** → copy the config.
+2. **Build → Firestore Database → Create database** (production mode).
+3. **Build → Authentication → Sign-in method → enable Anonymous**.
+4. Paste the web config into `HARDCODED` in
+   [src/firebase.config.js](src/firebase.config.js) (or set `VITE_FIREBASE_*` env
+   vars). Blank values keep the app in local-only mode.
+5. **Publish the Firestore security rules** (next section).
+
+### Firestore security rules
+The intended rules are in [firestore.rules](firestore.rules). Publish them with
+**either**:
+- **Console (no CLI):** Firebase Console → **Firestore Database → Rules** → paste
+  the contents of `firestore.rules` → **Publish**.
+- **CLI:** `firebase login`, then from the repo root
+  `firebase deploy --only firestore:rules` (needs a `firebase.json` with
+  `{"firestore": {"rules": "firestore.rules"}}` and the project selected).
+
+Security model: auth required for everything; a signed-in user may **read** a
+single game only if they know its room code (`get`; **`list` is denied**); only
+the **host** (the uid that created it) may create/update/delete it, and the host
+field is immutable.
+
+### Limitations
+- No real login — the **room code works like a shared secret**; anyone with it (and
+  signed in anonymously) can view that game.
+- **Viewers are read-only**; only the host edits, so there is no multi-editor
+  conflict handling.
+- Anonymous auth means anyone could create their own games — fine for casual use;
+  Firebase **free (Spark) tier** is plenty for normal play, but usage is subject to
+  Firebase limits/pricing. (App Check / abuse mitigation is a future item.)
+- Shared data lives in Firestore; local games stay in localStorage. They are
+  **not** merged automatically.
+
 ## Build
 
 ```powershell

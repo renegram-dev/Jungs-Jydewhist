@@ -26,8 +26,22 @@ implement generic Whist scoring and do **not** add contracts beyond the 30 in
   [src/state/AppStateContext.jsx](src/state/AppStateContext.jsx); it is the only
   place that writes to localStorage.
 
+## Shared mode ("Delt spil")
+- Optional. **Local mode stays the default and unchanged** (localStorage).
+- In shared mode, **Cloud Firestore is the source of truth** (`sharedGames/{roomCode}`).
+- Keep the layers separate: scoring stays pure; Firestore wrappers live in
+  [src/lib/sharedGame.js](src/lib/sharedGame.js) / [src/lib/firebase.js](src/lib/firebase.js);
+  pure helpers (no Firebase import) in [src/lib/sharedGameUtils.js](src/lib/sharedGameUtils.js).
+- The Firebase SDK is **lazy-loaded** (dynamic import) — don't statically import it
+  into the main bundle.
+- **Anonymous Auth only** — no usernames/passwords. **No Firebase Admin SDK.** Web
+  config is **not a secret**; security is enforced by [firestore.rules](firestore.rules)
+  (auth required, room-code read, **host-only** write, no `list`). Don't loosen these.
+- Host edits; **viewers are strictly read-only** (gate UI on `canEdit`). All clients
+  update via `onSnapshot`.
+
 ## Scope guardrails (MVP)
-- No backend, no auth, no database, no multiplayer sync.
+- No custom backend, no password login, no Firebase Admin SDK, no paid plan.
 - Players are **fixed** (René, Thomas, Carsten, Tom) — no player editing.
 - **Use Danish UI strings.** Code, identifiers and comments are English.
 - **Do not expand scope without explicit approval.** New features → add to

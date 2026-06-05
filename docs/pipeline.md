@@ -20,3 +20,8 @@ PLAN → IMPLEMENT → UNIT TEST → BROWSER SMOKE → BUILD → MANUAL IPHONE C
    Wi-Fi, sanity-check the change with large touch targets.
 7. **COMMIT** — clear message. See
    [validation-checklist.md](validation-checklist.md) before committing.
+
+For **shared mode ("Delt spil")** changes, also run the two-device manual check in
+[validation-checklist.md](validation-checklist.md) (needs valid Firebase config +
+published `firestore.rules`). CI does not test live Firebase — the smoke only
+checks the local/configured UI state.

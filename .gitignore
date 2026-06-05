@@ -14,6 +14,11 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Firebase CLI artifacts
+firebase-debug.log*
+firestore-debug.log*
+.firebase/
+
 # Editor / OS
 .DS_Store
 Thumbs.db

@@ -5,7 +5,8 @@ import ConfirmDialog from './ConfirmDialog.jsx';
 
 // Compact chronological hand history (newest first). Display numbers are derived
 // from chronological position, so deleting a hand renumbers the rest.
-export default function HandHistory({ session, onDeleteHand }) {
+// Deleting is only available when canEdit (local mode or shared host).
+export default function HandHistory({ session, onDeleteHand, canEdit = true }) {
   const [confirmId, setConfirmId] = useState(null);
   const rows = handsWithDisplayNumbers(session.hands, true); // newest first
 
@@ -22,14 +23,16 @@ export default function HandHistory({ session, onDeleteHand }) {
                 {summarizeHand(hand, displayNumber)}
                 {hand.manualOverride && <em className="manual-badge"> (manuel)</em>}
               </span>
-              <button
-                className="btn btn-icon btn-danger-outline"
-                onClick={() => setConfirmId(hand.id)}
-                aria-label={`Slet spil #${displayNumber}`}
-                data-testid={`delete-hand-${displayNumber}`}
-              >
-                Slet
-              </button>
+              {canEdit && (
+                <button
+                  className="btn btn-icon btn-danger-outline"
+                  onClick={() => setConfirmId(hand.id)}
+                  aria-label={`Slet spil #${displayNumber}`}
+                  data-testid={`delete-hand-${displayNumber}`}
+                >
+                  Slet
+                </button>
+              )}
             </li>
           ))}
         </ul>

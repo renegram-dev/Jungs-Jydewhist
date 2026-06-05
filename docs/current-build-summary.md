@@ -21,7 +21,22 @@ _Last updated: 2026-06-05._
 A mobile-first, frontend-only **scorekeeper** for the house-rule whist variant
 Jungs-Jydewhist. Four fixed players (René, Thomas, Carsten, Tom). It records
 hands, computes scores from the house rules, keeps multiple saved sessions, and
-supports JSON backup export/import. It is **not** a card game.
+supports JSON backup export/import. It is **not** a card game. It also has an
+optional **shared mode ("Delt spil")** backed by Cloud Firestore.
+
+## Modes: local vs shared
+- **Local mode (default):** localStorage is the source of truth (one device).
+- **Shared mode ("Delt spil"):** Cloud Firestore is the source of truth for that
+  game (`sharedGames/{roomCode}`). The host edits; viewers are read-only; all
+  phones update live via `onSnapshot`. Auth is Firebase **Anonymous Auth** (no
+  login). The Firebase SDK is lazy-loaded (separate ~108 KB-gz chunk), so
+  local-only users don't download it. Modules:
+  [../src/lib/firebase.js](../src/lib/firebase.js),
+  [../src/lib/sharedGame.js](../src/lib/sharedGame.js),
+  [../src/lib/sharedGameUtils.js](../src/lib/sharedGameUtils.js); config in
+  [../src/firebase.config.js](../src/firebase.config.js); rules in
+  [../firestore.rules](../firestore.rules). Security: room-code read, host-only
+  write, no listing. Local and shared data are kept separate (no auto-merge).
 
 ## Architecture
 - **Pure scoring engine** — [../src/lib/scoring.js](../src/lib/scoring.js). No
@@ -64,13 +79,16 @@ shown as "(gammel scoring)". `vipPosition` is stored on the hand and validated o
 import. There's also a read-only **Scoringsregler** overview in-app.
 
 ## Validation status (this build)
-- ✅ `npm test` — 50 unit tests pass (scoring incl. all worked numeric cases, the
-  full VIP-by-position set + the reject-without-position case, non-zero-sum
-  rejection, zero-sum property sweep; storage round-trip, VIP round-trip + legacy
-  acceptance, and rejections).
-- ✅ `npm run build` — production build succeeds.
-- ✅ `npm run smoke` — Playwright Chromium, 3 tests: core (load → add hand → reload
-  persists → undo zeroes), VIP (card required before save → scores by position),
-  and Scoringsregler (overview opens with key text). **Automated path used.**
-- ⏳ Manual iPhone-over-Wi-Fi pass — see
-  [validation-checklist.md](validation-checklist.md); to be done on René's phone.
+- ✅ `npm test` — 59 unit tests pass (scoring incl. all worked numeric cases, the
+  full VIP-by-position set + reject-without-position; storage round-trip, VIP
+  round-trip + legacy acceptance, rejections; shared-game pure utils: room codes,
+  share link, doc validation/mapping).
+- ✅ `npm run build` — production build succeeds (Firebase code-split into a lazy
+  chunk; main bundle ~unchanged).
+- ✅ `npm run smoke` — Playwright Chromium, 4 tests: core, VIP, Scoringsregler, and
+  shared-mode controls present in local mode (no live connect).
+- ⏳ Manual iPhone-over-Wi-Fi pass — see [validation-checklist.md](validation-checklist.md).
+- ⏳ **Shared mode activation pending two owner actions:** (1) a **valid** Firebase
+  web API key (the first key provided was rejected by Google as `API_KEY_INVALID`),
+  and (2) **publishing the Firestore rules** (the `firebase` CLI here is not
+  authenticated). Live two-phone sync is a manual test once both are done.

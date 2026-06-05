@@ -74,3 +74,16 @@ test('Scoringsregler overview opens with the key rules text', async ({ page }) =
   await expect(rules).toContainText('Sol');
   await expect(rules).toContainText('Ren sol');
 });
+
+// Firebase is configured, so the shared-mode controls are offered in local mode.
+// We do NOT connect to Firestore here (that needs real network + published rules
+// + two devices) — live shared sync is a manual test, see
+// docs/validation-checklist.md. This just verifies the local/configured UI state.
+test('shared mode controls are available in local mode (no live connect)', async ({ page }) => {
+  await page.goto('/');
+  await expect(page.getByTestId('mode-badge')).toHaveText('Lokal');
+  await expect(page.getByTestId('start-shared-btn')).toBeVisible();
+  await expect(page.getByTestId('join-shared-btn')).toBeVisible();
+  // Local editing still works (canEdit is true in local mode).
+  await expect(page.getByTestId('new-hand-btn')).toBeVisible();
+});
