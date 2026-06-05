@@ -128,3 +128,24 @@ export function cumulativeTotals(data, players = PLAYERS) {
   for (const p of players) t[p] += current[p];
   return t;
 }
+
+/**
+ * The Firestore write payload for "Arkivér aften og start ny": appends the current
+ * hands (with frozen totals) to archivedSessions and clears the active hands.
+ * Returns null when there is nothing to archive. This is what gets written to the
+ * shared document (not just React state).
+ */
+export function buildArchivePayload(data) {
+  const hands = Array.isArray(data?.hands) ? data.hands : [];
+  if (hands.length === 0) return null;
+  const entry = buildArchiveEntry({ name: data?.sessionName, hands });
+  return { archivedSessions: [...getArchivedSessions(data), entry], hands: [] };
+}
+
+/**
+ * The Firestore write payload for deleting one archived evening by id. Removes only
+ * that entry; current hands and other archived sessions are untouched.
+ */
+export function removeArchivedSession(data, archiveId) {
+  return { archivedSessions: getArchivedSessions(data).filter((a) => a.id !== archiveId) };
+}

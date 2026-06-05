@@ -41,6 +41,13 @@ import {
   getArchivedSessions,
   cumulativeTotals as computeCumulativeTotals,
 } from '../lib/sharedGameUtils.js';
+import {
+  recordSharedRoom,
+  updateRecentRoomName,
+  clearLastSharedRoom,
+  getLastSharedRoomCode,
+  getRecentSharedRooms,
+} from '../lib/sharedMeta.js';
 
 const AppStateContext = createContext(null);
 
@@ -96,6 +103,7 @@ export function AppStateProvider({ children }) {
   const [myUid, setMyUid] = useState(null);
   const [sharedStatus, setSharedStatus] = useState('idle'); // idle|connecting|connected|syncing|offline|error
   const [sharedError, setSharedError] = useState(null);
+  const [resumeRoom, setResumeRoom] = useState(null); // { roomCode, sessionName } | null
 
   const firebaseReady = isFirebaseConfigured();
   const isShared = !!roomCode;
@@ -147,6 +155,7 @@ export function AppStateProvider({ children }) {
           setSharedData(evt.data);
           setSharedError(null);
           setSharedStatus(evt.hasPendingWrites ? 'syncing' : evt.fromCache ? 'offline' : 'connected');
+          if (evt.data && evt.data.sessionName) updateRecentRoomName(roomCode, evt.data.sessionName);
         });
       })
       .catch((e) => {
@@ -174,10 +183,13 @@ export function AppStateProvider({ children }) {
     setSharedStatus('connecting');
     try {
       const m = await loadShared();
-      const { roomCode: code, hostUid } = await m.createSharedGameFromSession(getActiveSession(state));
+      const localSession = getActiveSession(state);
+      const { roomCode: code, hostUid } = await m.createSharedGameFromSession(localSession);
       setMyUid(hostUid);
       setRoomCode(code);
       updateUrlRoom(code);
+      recordSharedRoom({ roomCode: code, sessionName: localSession ? localSession.name : '' });
+      setResumeRoom(null);
       return { ok: true, roomCode: code };
     } catch (e) {
       const msg = errMsg(e);
@@ -199,6 +211,8 @@ export function AppStateProvider({ children }) {
         setMyUid(res.uid);
         setRoomCode(code);
         updateUrlRoom(code);
+        recordSharedRoom({ roomCode: code, sessionName: res.data ? res.data.sessionName : '' });
+        setResumeRoom(null);
         return { ok: true, isHost: res.isHost };
       } catch (e) {
         const msg = errMsg(e);
@@ -216,8 +230,23 @@ export function AppStateProvider({ children }) {
     setMyUid(null);
     setSharedStatus('idle');
     setSharedError(null);
+    setResumeRoom(null);
+    clearLastSharedRoom(); // don't nag to resume a room you explicitly left
     updateUrlRoom(null);
   }, [updateUrlRoom]);
+
+  // Resume banner: continue the remembered room, or stay local (and forget it).
+  const resumeShared = useCallback(() => {
+    const code = resumeRoom && resumeRoom.roomCode;
+    setResumeRoom(null);
+    if (code) return joinShared(code);
+    return Promise.resolve({ ok: false });
+  }, [resumeRoom, joinShared]);
+
+  const stayLocal = useCallback(() => {
+    clearLastSharedRoom();
+    setResumeRoom(null);
+  }, []);
 
   // Mode-aware editing actions. In shared-viewer mode these are no-ops (the UI
   // also hides the controls).
@@ -272,13 +301,37 @@ export function AppStateProvider({ children }) {
     }
   }, [mode, roomCode]);
 
-  // Auto-join a shared game from ?room=CODE on first load.
+  // Host-only: delete one archived evening from Samlet historik.
+  const doDeleteArchived = useCallback(
+    async (archiveId) => {
+      if (mode !== 'shared-host') return { ok: false, error: 'Kun værten kan slette arkiverede aftener.' };
+      try {
+        const m = await loadShared();
+        await m.deleteArchivedSession(roomCode, archiveId);
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: errMsg(e) };
+      }
+    },
+    [mode, roomCode],
+  );
+
+  // On first load: ?room=CODE auto-joins; otherwise offer to resume the last room.
   const didInit = useRef(false);
   useEffect(() => {
     if (didInit.current) return;
     didInit.current = true;
+    if (!isFirebaseConfigured()) return;
     const code = new URLSearchParams(window.location.search).get('room');
-    if (code && isFirebaseConfigured()) joinShared(code);
+    if (code) {
+      joinShared(code);
+      return;
+    }
+    const last = getLastSharedRoomCode();
+    if (last) {
+      const match = getRecentSharedRooms().find((r) => r.roomCode === last);
+      setResumeRoom({ roomCode: last, sessionName: match ? match.sessionName : '' });
+    }
   }, [joinShared]);
 
   const activeSession = useMemo(
@@ -309,6 +362,9 @@ export function AppStateProvider({ children }) {
       clearSession: doClear,
       deleteHand: doDeleteHand,
       archiveSession: doArchive,
+      deleteArchived: doDeleteArchived,
+      resumeShared,
+      stayLocal,
       // local-only session management
       createSession: (name) => dispatch({ type: 'CREATE_SESSION', name }),
       selectSession: (id) => dispatch({ type: 'SELECT_SESSION', id }),
@@ -325,7 +381,20 @@ export function AppStateProvider({ children }) {
       joinShared,
       leaveShared,
     }),
-    [state, doAddHand, doUndoLast, doClear, doDeleteHand, doArchive, startSharedGame, joinShared, leaveShared],
+    [
+      state,
+      doAddHand,
+      doUndoLast,
+      doClear,
+      doDeleteHand,
+      doArchive,
+      doDeleteArchived,
+      startSharedGame,
+      joinShared,
+      leaveShared,
+      resumeShared,
+      stayLocal,
+    ],
   );
 
   const value = {
@@ -345,6 +414,7 @@ export function AppStateProvider({ children }) {
     shareLink,
     archivedSessions,
     cumulativeTotals,
+    resumeRoom,
     actions,
   };
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

@@ -16,7 +16,8 @@ function signed(v) {
 }
 
 export default function Scoreboard({ onNewHand, onOpenSessions }) {
-  const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, actions } = useAppState();
+  const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, resumeRoom, actions } =
+    useAppState();
   const [confirm, setConfirm] = useState(null); // 'reset' | 'archive' | null
   const [importOpen, setImportOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
@@ -75,6 +76,27 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
           </div>
         )}
       </header>
+
+      {!isShared && resumeRoom && (
+        <div className="resume-banner" data-testid="resume-banner">
+          <div className="resume-text">
+            <strong>Fortsæt delt spil?</strong>
+            <span>
+              {resumeRoom.sessionName ? `"${resumeRoom.sessionName}" · ` : ''}kode{' '}
+              <b>{resumeRoom.roomCode}</b>. Du er i lokal tilstand — den delte historik findes i
+              det delte rum, ikke lokalt.
+            </span>
+          </div>
+          <div className="resume-actions">
+            <button className="btn btn-primary" onClick={() => actions.resumeShared()} data-testid="resume-btn">
+              Fortsæt delt spil
+            </button>
+            <button className="btn btn-secondary" onClick={() => actions.stayLocal()} data-testid="stay-local-btn">
+              Bliv lokal
+            </button>
+          </div>
+        </div>
+      )}
 
       <SharedBar />
 

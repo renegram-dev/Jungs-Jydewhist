@@ -10,6 +10,8 @@ import {
   buildArchiveEntry,
   getArchivedSessions,
   cumulativeTotals,
+  buildArchivePayload,
+  removeArchivedSession,
 } from '../lib/sharedGameUtils.js';
 import { PLAYERS } from '../lib/scoring.js';
 
@@ -137,5 +139,41 @@ describe('archive + cumulative scoring', () => {
     expect(after.archivedSessions).toHaveLength(1); // evening preserved
     // The score is preserved in cumulative even though current hands are gone.
     expect(cumulativeTotals(after)).toEqual(delta(10, 10, -10, -10));
+  });
+
+  it('buildArchivePayload writes archivedSessions + cleared hands (not just UI state)', () => {
+    const data = {
+      sessionName: 'Aften',
+      hands: [{ id: 'a', timestamp: '2026-06-05T18:00:00.000Z', delta: delta(10, 10, -10, -10) }],
+      archivedSessions: [{ id: 'old', totals: delta(1, -1, 1, -1) }],
+    };
+    const payload = buildArchivePayload(data);
+    expect(payload.hands).toEqual([]); // active cleared
+    expect(payload.archivedSessions).toHaveLength(2); // existing preserved + new
+    expect(payload.archivedSessions[0].id).toBe('old');
+    expect(payload.archivedSessions[1].totals).toEqual(delta(10, 10, -10, -10));
+  });
+
+  it('buildArchivePayload returns null when there is nothing to archive', () => {
+    expect(buildArchivePayload({ hands: [] })).toBeNull();
+    expect(buildArchivePayload({})).toBeNull();
+  });
+
+  it('removeArchivedSession deletes only the chosen evening; cumulative recomputes; current hands stay; zero-sum', () => {
+    const data = {
+      hands: [{ delta: delta(5, 5, -5, -5) }], // current active, untouched
+      archivedSessions: [
+        { id: 'e1', totals: delta(10, 10, -10, -10) },
+        { id: 'e2', totals: delta(-15, -15, 15, 15) },
+      ],
+    };
+    const payload = removeArchivedSession(data, 'e1');
+    expect(payload.archivedSessions.map((a) => a.id)).toEqual(['e2']);
+
+    const after = { ...data, ...payload };
+    expect(after.hands).toHaveLength(1); // current hands unchanged
+    const c = cumulativeTotals(after);
+    expect(c).toEqual(delta(-10, -10, 10, 10)); // e2 + current
+    expect(zeroSum(c)).toBe(0);
   });
 });

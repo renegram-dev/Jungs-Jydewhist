@@ -17,8 +17,8 @@ import { PLAYERS } from './scoring.js';
 import {
   generateRoomCode,
   isValidSharedDoc,
-  buildArchiveEntry,
-  getArchivedSessions,
+  buildArchivePayload,
+  removeArchivedSession,
 } from './sharedGameUtils.js';
 
 // Re-export pure helpers + auth so callers need only this module.
@@ -32,6 +32,8 @@ export {
   buildArchiveEntry,
   getArchivedSessions,
   cumulativeTotals,
+  buildArchivePayload,
+  removeArchivedSession,
 } from './sharedGameUtils.js';
 
 export const SCORING_VERSION = 2; // bumped when VIP-by-trump-card scoring landed
@@ -143,12 +145,19 @@ export async function archiveSharedSession(roomCode) {
   const ref = gameRef(roomCode);
   const snap = await getDoc(ref);
   if (!snap.exists()) throw new Error('Delt spil findes ikke.');
-  const data = snap.data();
-  const hands = Array.isArray(data.hands) ? data.hands : [];
-  if (hands.length === 0) throw new Error('Ingen spil at arkivere.');
-  const entry = buildArchiveEntry({ name: data.sessionName, hands });
-  const archivedSessions = [...getArchivedSessions(data), entry];
-  await updateDoc(ref, { archivedSessions, hands: [], updatedAt: serverTimestamp() });
+  const payload = buildArchivePayload(snap.data());
+  if (!payload) throw new Error('Ingen spil at arkivere.');
+  await updateDoc(ref, { ...payload, updatedAt: serverTimestamp() });
+}
+
+// Host-only: delete a single archived evening by id. Other archived sessions,
+// the current hands, players and host stay unchanged. Same doc, host-only write.
+export async function deleteArchivedSession(roomCode, archiveId) {
+  const ref = gameRef(roomCode);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Delt spil findes ikke.');
+  const payload = removeArchivedSession(snap.data(), archiveId);
+  await updateDoc(ref, { ...payload, updatedAt: serverTimestamp() });
 }
 
 export async function deleteSharedGame(roomCode) {

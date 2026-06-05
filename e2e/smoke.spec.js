@@ -87,3 +87,25 @@ test('shared mode controls are available in local mode (no live connect)', async
   // Local editing still works (canEdit is true in local mode).
   await expect(page.getByTestId('new-hand-btn')).toBeVisible();
 });
+
+// Resume flow: if a previous shared room is remembered in localStorage, startup
+// (without ?room) offers to resume it. We verify the banner appears and that
+// "Bliv lokal" dismisses it — without connecting to Firestore.
+test('offers to resume a remembered shared room, and "Bliv lokal" dismisses it', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem(
+      'jungs-jydewhist.shared.v1',
+      JSON.stringify({
+        lastRoomCode: 'TESTAB',
+        lastJoinedAt: new Date().toISOString(),
+        recent: [{ roomCode: 'TESTAB', sessionName: 'Torsdagsklub', joinedAt: new Date().toISOString() }],
+      }),
+    );
+  });
+  await page.goto('/');
+  await expect(page.getByTestId('resume-banner')).toBeVisible();
+  await expect(page.getByTestId('resume-banner')).toContainText('TESTAB');
+  await expect(page.getByTestId('mode-badge')).toHaveText('Lokal'); // still local until resumed
+  await page.getByTestId('stay-local-btn').click();
+  await expect(page.getByTestId('resume-banner')).toHaveCount(0);
+});

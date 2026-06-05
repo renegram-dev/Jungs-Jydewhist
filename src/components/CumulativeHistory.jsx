@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import Modal from './Modal.jsx';
+import ConfirmDialog from './ConfirmDialog.jsx';
 import { useAppState } from '../state/AppStateContext.jsx';
 import { sortedByScore, totalsAreZeroSum, handsWithDisplayNumbers } from '../state/selectors.js';
 import { summarizeHand } from '../lib/scoring.js';
@@ -32,8 +33,9 @@ function TotalsRow({ totals }) {
 // Read-only long-term history for a shared room: cumulative score across all
 // archived evenings + the current one, plus the per-evening breakdown.
 export default function CumulativeHistory({ onClose }) {
-  const { archivedSessions, cumulativeTotals, activeSession, totals } = useAppState();
+  const { archivedSessions, cumulativeTotals, activeSession, totals, canEdit, actions } = useAppState();
   const [openId, setOpenId] = useState(null);
+  const [confirmId, setConfirmId] = useState(null);
   const cumZero = totalsAreZeroSum(cumulativeTotals);
   const currentHands = activeSession ? activeSession.hands.length : 0;
 
@@ -73,6 +75,17 @@ export default function CumulativeHistory({ onClose }) {
                   </span>
                 </button>
                 <TotalsRow totals={a.totals} />
+                {canEdit && (
+                  <div className="archive-actions">
+                    <button
+                      className="btn btn-danger-outline btn-icon"
+                      onClick={() => setConfirmId(a.id)}
+                      data-testid={`delete-archive-${a.id}`}
+                    >
+                      Slet aften
+                    </button>
+                  </div>
+                )}
                 {openId === a.id && (
                   <ul className="history-list">
                     {handsWithDisplayNumbers(a.hands, true).map(({ hand, displayNumber }) => (
@@ -91,6 +104,20 @@ export default function CumulativeHistory({ onClose }) {
       <div className="modal-actions">
         <button className="btn btn-primary" onClick={onClose}>Luk</button>
       </div>
+
+      {confirmId && (
+        <ConfirmDialog
+          title="Slet arkiveret aften?"
+          message="Dette fjerner aftenen fra den samlede historik og ændrer den samlede score. Handlingen kan ikke fortrydes."
+          confirmLabel="Slet aften"
+          danger
+          onConfirm={() => {
+            actions.deleteArchived(confirmId);
+            setConfirmId(null);
+          }}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
     </Modal>
   );
 }

@@ -264,18 +264,33 @@ h2 { font-size: 20px; margin: 8px 0; }
   margin-bottom: 14px;
 }
 .shared-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-.mode-badge { font-size: 13px; padding: 4px 10px; }
+.mode-badge { font-size: 15px; font-weight: 700; padding: 6px 14px; }
 .mode-badge.local { background: var(--panel-2); color: var(--muted); }
 .mode-badge.shared { background: var(--green); color: #fff; }
-.conn { font-size: 13px; color: var(--muted); }
+.conn { font-size: 14px; color: var(--muted); font-weight: 600; }
 .conn.connected { color: var(--pos); }
 .conn.syncing, .conn.connecting { color: var(--warn); }
 .conn.offline, .conn.error { color: var(--neg); }
 .shared-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .shared-actions .btn { flex: 1; min-width: 130px; }
 .room-code { font-size: 16px; flex-basis: 100%; }
-.room-code strong { font-variant-numeric: tabular-nums; letter-spacing: 1px; font-size: 19px; }
+.room-code strong { font-variant-numeric: tabular-nums; letter-spacing: 2px; font-size: 24px; }
 .shared-note { flex-basis: 100%; margin: 4px 0 0; font-size: 13px; }
+
+/* Resume-shared banner */
+.resume-banner { background: rgba(11, 107, 58, 0.18); border: 1px solid var(--green); border-radius: var(--radius); padding: 14px; margin-bottom: 14px; }
+.resume-text { display: flex; flex-direction: column; gap: 4px; margin-bottom: 10px; }
+.resume-text strong { font-size: 18px; }
+.resume-text span { color: var(--muted); font-size: 14px; }
+.resume-actions { display: flex; gap: 10px; }
+.resume-actions .btn { flex: 1; }
+
+/* Recent shared rooms (join dialog) */
+.recent-rooms { margin-bottom: 14px; display: flex; flex-direction: column; gap: 8px; }
+.recent-room { width: 100%; text-align: left; }
+
+/* Archived-evening delete */
+.archive-actions { margin-top: 8px; }
 
 /* Cumulative / archived history */
 .cum-section { margin-bottom: 18px; }

@@ -43,6 +43,16 @@ optional **shared mode ("Delt spil")** backed by Cloud Firestore.
   **cumulative** lifetime score (archived + current) to host and viewers. Missing
   `archivedSessions` is treated as `[]` (old rooms keep working); cumulative is
   zero-sum. No scoring/auth/rules change (same `sharedGames/{roomCode}` doc).
+- **Resume across restarts:** the app stores only pointers
+  ([../src/lib/sharedMeta.js](../src/lib/sharedMeta.js)): `lastSharedRoomCode` +
+  a recent-rooms list in localStorage (never the shared hands). On startup,
+  `?room=` rejoins; otherwise a **“Fortsæt delt spil?”** banner offers rejoin vs
+  stay-local, and **Deltag i delt spil** lists **Seneste delte spil**. This fixes
+  the "history disappears after restart" report — the data was always in Firestore;
+  the PWA just relaunched without `?room=`.
+- **Host can delete an archived evening** in Samlet historik (host-only `Slet
+  aften` → `removeArchivedSession` → Firestore update; viewers can't). Same doc +
+  host-only rule, so **no rules republish**.
 
 ## Architecture
 - **Pure scoring engine** — [../src/lib/scoring.js](../src/lib/scoring.js). No
@@ -85,13 +95,17 @@ shown as "(gammel scoring)". `vipPosition` is stored on the hand and validated o
 import. There's also a read-only **Scoringsregler** overview in-app.
 
 ## Validation status (this build)
-- ✅ `npm test` — 64 unit tests pass (scoring incl. VIP-by-position; storage
-  round-trip + legacy; shared-game pure utils: room codes, share link, doc
-  validation/mapping, **archive entry + cumulative totals + migration**).
+- ✅ `npm test` — 74 unit tests pass (scoring incl. VIP-by-position; storage
+  round-trip + legacy; shared-game pure utils incl. archive entry/payload,
+  cumulative totals, **remove archived evening**, migration; **shared-room
+  metadata** record/dedupe/cap/clear).
 - ✅ `npm run build` — production build succeeds (Firebase code-split into a lazy
   chunk; main bundle ~unchanged).
-- ✅ `npm run smoke` — Playwright Chromium, 4 tests: core, VIP, Scoringsregler, and
-  shared-mode controls present in local mode (no live connect).
+- ✅ `npm run smoke` — Playwright Chromium, 5 tests: core, VIP, Scoringsregler,
+  shared-mode controls in local mode, and the **resume banner** (seeded
+  localStorage, no live connect).
+- ✅ Verified by REST round-trip that **archiving persists `archivedSessions` to
+  Firestore and survives a fresh read** — the restart issue was resume, not data loss.
 - ✅ **Shared mode is ACTIVE:** valid Firebase web API key (anonymous sign-in
   verified), Anonymous Auth on, **Firestore rules published** (authed read returns
   404, not 403), deployed to Pages. The archive/cumulative feature uses the same

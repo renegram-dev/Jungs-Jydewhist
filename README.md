@@ -159,12 +159,29 @@ is effectively the access key. The room keeps a long-term log so the group sees
   lifetime total** (all archived evenings + the current one), the current evening
   shown separately, and each archived evening (name, date, hand count, totals, with
   expandable hand history).
+- **Host can delete an archived evening** from **Samlet historik** (the **Slet
+  aften** button, host-only, with a confirm) — handy for removing test evenings.
+  Cumulative totals recompute; current hands and other evenings are untouched.
 - **Nulstil aktuel session** still exists but is the *destructive* option — it
   clears the active evening **without** archiving it (with a clear warning). Prefer
   **Arkivér aften og start ny** to preserve history.
 
 Cumulative totals are always zero-sum (a warning shows otherwise). Older rooms
 created before this feature simply have an empty archive — nothing breaks.
+
+### Resuming a shared room after closing the app
+Shared data lives in **Firestore**, not localStorage — closing the app never
+deletes it. To make a relaunch reconnect automatically, the app remembers your
+**last room** (room code + name only, in localStorage):
+- Opening the **share link** (`?room=…`) always rejoins that room.
+- Otherwise, on startup the app shows **“Fortsæt delt spil?”** with **Fortsæt
+  delt spil** (rejoin — archive/cumulative history reloads from Firestore) and
+  **Bliv lokal** (stay in local mode).
+- **Deltag i delt spil** also lists **Seneste delte spil** so you can rejoin a
+  previous room with one tap — no need to remember the code.
+- Anonymous auth persists per browser/PWA, so rejoining the **same device** keeps
+  you as **Delt vært** (editable). Rejoining from a **different device** is
+  read-only **Delt visning** (the badge makes this obvious).
 
 ### Firebase setup (one-time, by the project owner)
 The web config lives in [src/firebase.config.js](src/firebase.config.js) — it is

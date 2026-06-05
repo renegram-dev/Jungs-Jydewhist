@@ -59,4 +59,25 @@ Prereq: valid web config in `src/firebase.config.js`, Anonymous Auth enabled, an
 - [ ] Expanding an archived evening shows its hand history.
 - [ ] Viewers see **Samlet historik** but have **no** Arkivér / Nulstil buttons.
 - [ ] **Nulstil aktuel session** in shared mode shows the strong "rydder uden at
-      arkivere" warning before clearing.
+      arkivere" warning before clearing (and does NOT touch archived history).
+
+### Manual — resume across app restart (the reported bug)
+- [ ] Host: start a shared game, add 1–2 hands, **Arkivér aften og start ny** →
+      Samlet historik shows the evening.
+- [ ] **Fully close/reload** the app (or relaunch from the home screen) **without**
+      `?room=` in the URL.
+- [ ] On startup a **“Fortsæt delt spil?”** banner appears → tap **Fortsæt delt spil**.
+- [ ] After rejoin, **Samlet historik** still shows the archived evening and the
+      cumulative totals are unchanged (loaded from Firestore).
+- [ ] **Deltag i delt spil** lists the room under **Seneste delte spil** (rejoin
+      with one tap, no code needed).
+- [ ] Same device/browser → you are **Delt vært** and can edit; another device →
+      **Delt visning** read-only.
+
+### Manual — delete archived evening (host)
+- [ ] Host opens **Samlet historik** → each archived evening shows **Slet aften**.
+- [ ] Delete an evening → confirm dialog → it disappears for host **and** viewer
+      live; cumulative totals update and stay zero-sum; current hands + other
+      evenings unchanged.
+- [ ] A **viewer** does **not** see **Slet aften** (and the action is rejected in
+      the action layer + by Firestore rules).
