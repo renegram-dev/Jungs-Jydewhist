@@ -9,6 +9,7 @@ import ImportDialog from './ImportDialog.jsx';
 import ScoringRules from './ScoringRules.jsx';
 import SharedBar from './SharedBar.jsx';
 import CumulativeHistory from './CumulativeHistory.jsx';
+import { MEDALS } from '../lib/sharedGameUtils.js';
 
 function signed(v) {
   if (v > 0) return `+${v}`;
@@ -16,7 +17,7 @@ function signed(v) {
 }
 
 export default function Scoreboard({ onNewHand, onOpenSessions }) {
-  const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, resumeRoom, actions } =
+  const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, resumeRoom, provisionalMedals, actions } =
     useAppState();
   const [confirm, setConfirm] = useState(null); // 'reset' | 'archive' | null
   const [importOpen, setImportOpen] = useState(false);
@@ -110,7 +111,14 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
         <tbody>
           {order.map((p) => (
             <tr key={p}>
-              <td className="sb-name">{p}</td>
+              <td className="sb-name">
+                {p}
+                {provisionalMedals && (
+                  <span className="prov-medal" data-testid={`prov-${p}`}>
+                    Står til {MEDALS[provisionalMedals[p]].emoji}
+                  </span>
+                )}
+              </td>
               <td className={`sb-total ${totals[p] >= 0 ? 'pos' : 'neg'}`} data-testid={`total-${p}`}>
                 {signed(totals[p])}
               </td>

@@ -81,3 +81,16 @@ Prereq: valid web config in `src/firebase.config.js`, Anonymous Auth enabled, an
       evenings unchanged.
 - [ ] A **viewer** does **not** see **Slet aften** (and the action is rejected in
       the action layer + by Firestore rules).
+
+### Manual — medals & medal-point ranking (shared)
+- [ ] With active hands, the scoreboard shows subtle provisional **“Står til 🥇/🥈/🥉/💩”**
+      under the names (based on the current evening only).
+- [ ] **Arkivér aften og start ny** → that evening shows medals in Samlet historik
+      ("Medaljer: René 🥇, Thomas 🥈, …"); permanent counts + medalPoints update.
+- [ ] **Medaljestilling** ranks by **medal points** (Guld 3 · Sølv 2 · Bronze 1 ·
+      Lort 0), with medal counts and cumulative score shown; confirm a player with
+      more medal points but fewer cumulative points still ranks higher.
+- [ ] Ties award shared medals (e.g. two equal top scores → two 🥇, no 🥈).
+- [ ] Delete an archived evening → medal counts, medalPoints and cumulative score
+      recompute live for host and viewer.
+- [ ] **Nulstil aktuel session** awards **no** medals and doesn't touch counts.

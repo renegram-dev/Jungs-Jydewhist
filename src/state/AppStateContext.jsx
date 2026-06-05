@@ -40,6 +40,8 @@ import {
   mapSharedDocToSession,
   getArchivedSessions,
   cumulativeTotals as computeCumulativeTotals,
+  buildMedalStandings,
+  computeMedalsForTotals,
 } from '../lib/sharedGameUtils.js';
 import {
   recordSharedRoom,
@@ -353,6 +355,16 @@ export function AppStateProvider({ children }) {
     () => (isShared ? computeCumulativeTotals(sharedData) : totals),
     [isShared, sharedData, totals],
   );
+  // Long-term medal standings (shared mode) and provisional "Står til" medal for
+  // the current active evening (shown on the live scoreboard in any mode).
+  const medalStandings = useMemo(
+    () => (isShared ? buildMedalStandings(archivedSessions, activeSession ? activeSession.hands : []) : null),
+    [isShared, archivedSessions, activeSession],
+  );
+  const provisionalMedals = useMemo(
+    () => (activeSession && activeSession.hands.length ? computeMedalsForTotals(totals) : null),
+    [activeSession, totals],
+  );
 
   const actions = useMemo(
     () => ({
@@ -414,6 +426,8 @@ export function AppStateProvider({ children }) {
     shareLink,
     archivedSessions,
     cumulativeTotals,
+    medalStandings,
+    provisionalMedals,
     resumeRoom,
     actions,
   };

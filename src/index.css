@@ -291,6 +291,21 @@ h2 { font-size: 20px; margin: 8px 0; }
 
 /* Archived-evening delete */
 .archive-actions { margin-top: 8px; }
+.archive-medals { font-size: 14px; color: var(--text); margin: 6px 0; }
+
+/* Provisional medal on the live scoreboard (subtle, under the name) */
+.prov-medal { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+
+/* Medal standings (Samlet historik) */
+.medal-list { list-style: none; margin: 0; padding: 0; }
+.medal-row { background: var(--panel); border-radius: var(--radius); padding: 12px 14px; margin-bottom: 10px; }
+.medal-head { display: flex; align-items: baseline; gap: 8px; }
+.medal-rank { color: var(--muted); font-weight: 700; }
+.medal-name { font-size: 18px; font-weight: 700; flex: 1; }
+.medal-points { font-size: 18px; font-weight: 800; color: var(--pos); font-variant-numeric: tabular-nums; }
+.medal-counts { font-size: 17px; margin: 6px 0 2px; font-variant-numeric: tabular-nums; }
+.medal-sub { font-size: 14px; color: var(--muted); display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.prov-chip { background: var(--panel-2); border-radius: 999px; padding: 2px 10px; }
 
 /* Cumulative / archived history */
 .cum-section { margin-bottom: 18px; }

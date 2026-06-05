@@ -28,6 +28,9 @@ test('scorekeeper smoke: add hand, persist, undo', async ({ page }) => {
   await expect(page.getByTestId('total-Tom')).toHaveText('-10');
   await expect(page.getByTestId('hand-count')).toHaveText('Spil i alt: 1');
 
+  // Provisional ("Står til") medal shows on the live scoreboard — René leads → 🥇.
+  await expect(page.getByTestId('prov-René')).toContainText('🥇');
+
   // 4) Reload — the saved score still shows (localStorage persistence).
   await page.reload();
   await expect(page.getByTestId('total-René')).toHaveText('+10');

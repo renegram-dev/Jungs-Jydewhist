@@ -112,6 +112,17 @@ export default function ScoringRules({ onClose }) {
             <li>Manuelle hænder markeres i historikken med "(manuel)".</li>
           </ul>
         </section>
+
+        <section className="rules-section">
+          <h3>Medaljer (delt historik)</h3>
+          <ul>
+            <li>Hver <strong>arkiveret aften</strong> giver permanente medaljer efter aftenens slutstilling: 🥇 Guld, 🥈 Sølv, 🥉 Bronze, 💩 Lort!.</li>
+            <li>Langtidsrangeringen (“Medaljestilling”) følger <strong>medaljepoint</strong>: Guld 3, Sølv 2, Bronze 1, Lort 0.</li>
+            <li>Den samlede point-score vises også, men rangeringen er efter medaljepoint — <em>ikke</em> point.</li>
+            <li>Den aktuelle aften viser kun <strong>foreløbige</strong> medaljer (“Står til …”) indtil den arkiveres.</li>
+            <li>Uafgjort deler medaljer (konkurrence-rangering: lige score deler plads, og næste plads springes over).</li>
+          </ul>
+        </section>
       </div>
 
       <div className="modal-actions">

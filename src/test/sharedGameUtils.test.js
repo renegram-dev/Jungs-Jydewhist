@@ -12,6 +12,11 @@ import {
   cumulativeTotals,
   buildArchivePayload,
   removeArchivedSession,
+  computeMedalsForTotals,
+  medalsForArchived,
+  aggregateMedalCounts,
+  computeMedalPoints,
+  buildMedalStandings,
 } from '../lib/sharedGameUtils.js';
 import { PLAYERS } from '../lib/scoring.js';
 
@@ -175,5 +180,97 @@ describe('archive + cumulative scoring', () => {
     const c = cumulativeTotals(after);
     expect(c).toEqual(delta(-10, -10, 10, 10)); // e2 + current
     expect(zeroSum(c)).toBe(0);
+  });
+});
+
+describe('medals — per evening (competition ranking)', () => {
+  it('1) normal evening: gold/silver/bronze/poop', () => {
+    expect(computeMedalsForTotals(delta(100, 50, 10, -160))).toEqual({
+      [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'poop',
+    });
+  });
+
+  it('2) tie for first: two gold, no silver, then bronze, poop', () => {
+    expect(computeMedalsForTotals(delta(100, 100, -50, -150))).toEqual({
+      [RENE]: 'gold', [THOMAS]: 'gold', [CARSTEN]: 'bronze', [TOM]: 'poop',
+    });
+  });
+
+  it('3) tie for second: one gold, two silver, no bronze, poop', () => {
+    expect(computeMedalsForTotals(delta(100, 50, 50, -200))).toEqual({
+      [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'silver', [TOM]: 'poop',
+    });
+  });
+
+  it('4) tie for third/fourth: gold, silver, two bronze, no poop', () => {
+    expect(computeMedalsForTotals(delta(100, 50, -10, -10))).toEqual({
+      [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'bronze',
+    });
+  });
+
+  it('5) buildArchiveEntry stores the evening medal result', () => {
+    const hands = [{ id: 'a', delta: delta(100, 50, 10, -160) }];
+    const e = buildArchiveEntry({ name: 'Aften', hands });
+    expect(e.medals).toEqual({ [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'poop' });
+  });
+
+  it('6) existing archived session without medals derives them from totals', () => {
+    const legacy = { id: 'x', totals: delta(100, 50, 10, -160) }; // no medals field
+    expect(medalsForArchived(legacy)).toEqual({
+      [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'poop',
+    });
+  });
+});
+
+describe('medals — long-term aggregation and standings', () => {
+  it('7+8) aggregates counts across evenings and computes medalPoints', () => {
+    const archived = [
+      { medals: { [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'poop' } },
+      { medals: { [RENE]: 'gold', [THOMAS]: 'bronze', [CARSTEN]: 'silver', [TOM]: 'poop' } },
+    ];
+    const counts = aggregateMedalCounts(archived);
+    expect(counts[RENE]).toEqual({ gold: 2, silver: 0, bronze: 0, poop: 0 });
+    expect(computeMedalPoints(counts[RENE])).toBe(6); // 2*3
+    expect(computeMedalPoints(counts[THOMAS])).toBe(3); // silver(2)+bronze(1)
+    expect(computeMedalPoints(counts[TOM])).toBe(0); // two poop
+  });
+
+  it('9) standings rank by medalPoints, NOT cumulative point score', () => {
+    // René wins one huge evening; Thomas wins two close evenings → Thomas more medal points,
+    // but René has far more cumulative points.
+    const archived = [
+      { totals: delta(1000, 1, -1, -1000) }, // René gold, huge points
+      { totals: delta(5, 10, -5, -10) }, // Thomas gold, René silver
+      { totals: delta(5, 10, -5, -10) }, // Thomas gold, René silver
+    ];
+    const standings = buildMedalStandings(archived, []);
+    expect(standings[0].player).toBe(THOMAS); // 2 gold + 1 silver = 8
+    expect(standings[0].medalPoints).toBe(8);
+    const rene = standings.find((s) => s.player === RENE);
+    expect(rene.medalPoints).toBe(7); // gold + 2 silver
+    // René has the highest cumulative score yet ranks BELOW Thomas.
+    expect(rene.cumulativeScore).toBeGreaterThan(standings[0].cumulativeScore);
+    expect(standings.findIndex((s) => s.player === RENE)).toBe(1);
+  });
+
+  it('10) deleting an evening recomputes counts and medalPoints', () => {
+    const archived = [
+      { id: 'e1', medals: { [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'poop' } },
+      { id: 'e2', medals: { [RENE]: 'gold', [THOMAS]: 'silver', [CARSTEN]: 'bronze', [TOM]: 'poop' } },
+    ];
+    const remaining = archived.filter((a) => a.id !== 'e2'); // delete e2
+    const counts = aggregateMedalCounts(remaining);
+    expect(counts[RENE]).toEqual({ gold: 1, silver: 0, bronze: 0, poop: 0 });
+    expect(computeMedalPoints(counts[RENE])).toBe(3);
+  });
+
+  it('12) provisional medals reflect only the current active evening', () => {
+    const archived = [{ totals: delta(0, 0, 0, 0), medals: computeMedalsForTotals(delta(0, 0, 0, 0)) }];
+    const currentHands = [{ delta: delta(50, -10, -10, -30) }]; // René leads the active evening
+    const standings = buildMedalStandings(archived, currentHands);
+    const rene = standings.find((s) => s.player === RENE);
+    expect(rene.provisional).toBe('gold'); // provisional from current evening only
+    // archived evening was all-zero → everyone gold there, so counts don't reflect the active lead
+    expect(buildMedalStandings(archived, []).find((s) => s.player === RENE).provisional).toBeNull();
   });
 });

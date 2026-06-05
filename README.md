@@ -169,6 +169,23 @@ is effectively the access key. The room keeps a long-term log so the group sees
 Cumulative totals are always zero-sum (a warning shows otherwise). Older rooms
 created before this feature simply have an empty archive — nothing breaks.
 
+### Medaljer (medals & long-term ranking)
+Each **archived evening** permanently awards medals by that evening's final score:
+🥇 Guld, 🥈 Sølv, 🥉 Bronze, 💩 Lort! (4th). Ties share a medal using standard
+competition ranking (e.g. two golds → no silver; next is bronze).
+
+**Samlet historik → Medaljestilling** ranks players by **medal points**
+(Guld 3 · Sølv 2 · Bronze 1 · Lort 0) — **not** by the cumulative point score. It
+shows each player's medal counts (🥇/🥈/🥉/💩), medal points, and the cumulative
+point score as secondary info. Each archived evening also shows its medal result
+("Medaljer: René 🥇, Thomas 🥈, …").
+
+The **current evening** only shows *provisional* medals ("Står til 🥇" on the
+scoreboard and in Medaljestilling) — they count for real only once you
+**Arkivér aften og start ny**. Deleting an archived evening recomputes the medal
+counts, medal points and cumulative score for everyone live. Old archived evenings
+saved before medals existed get their medals derived from the stored totals.
+
 ### Resuming a shared room after closing the app
 Shared data lives in **Firestore**, not localStorage — closing the app never
 deletes it. To make a relaunch reconnect automatically, the app remembers your

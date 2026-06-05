@@ -53,6 +53,16 @@ optional **shared mode ("Delt spil")** backed by Cloud Firestore.
 - **Host can delete an archived evening** in Samlet historik (host-only `Slet
   aften` → `removeArchivedSession` → Firestore update; viewers can't). Same doc +
   host-only rule, so **no rules republish**.
+- **Medals & medal-point ranking:** each archived evening awards permanent medals
+  by its final score (🥇/🥈/🥉/💩, competition-ranking ties). Samlet historik →
+  **Medaljestilling** ranks by **medal points** (Guld 3 · Sølv 2 · Bronze 1 · Lort 0),
+  **not** cumulative points (shown as secondary). Pure helpers in
+  [../src/lib/sharedGameUtils.js](../src/lib/sharedGameUtils.js)
+  (`rankPlayersByScore`, `computeMedalsForTotals`, `aggregateMedalCounts`,
+  `computeMedalPoints`, `buildMedalStandings`); medals stored on each archived
+  entry, derived on read for legacy evenings. The live scoreboard shows
+  *provisional* "Står til" medals for the current evening (don't count until
+  archived). Same doc → **no rules republish**.
 
 ## Architecture
 - **Pure scoring engine** — [../src/lib/scoring.js](../src/lib/scoring.js). No
@@ -95,15 +105,16 @@ shown as "(gammel scoring)". `vipPosition` is stored on the hand and validated o
 import. There's also a read-only **Scoringsregler** overview in-app.
 
 ## Validation status (this build)
-- ✅ `npm test` — 74 unit tests pass (scoring incl. VIP-by-position; storage
-  round-trip + legacy; shared-game pure utils incl. archive entry/payload,
-  cumulative totals, **remove archived evening**, migration; **shared-room
-  metadata** record/dedupe/cap/clear).
+- ✅ `npm test` — 84 unit tests pass (scoring incl. VIP-by-position; storage
+  round-trip + legacy; shared-game utils incl. archive payload, cumulative,
+  remove archived, migration; **medals**: per-evening ranking + all tie cases,
+  aggregate counts, medal points, ranks-by-medal-points-not-cumulative,
+  provisional; shared-room metadata).
 - ✅ `npm run build` — production build succeeds (Firebase code-split into a lazy
   chunk; main bundle ~unchanged).
-- ✅ `npm run smoke` — Playwright Chromium, 5 tests: core, VIP, Scoringsregler,
-  shared-mode controls in local mode, and the **resume banner** (seeded
-  localStorage, no live connect).
+- ✅ `npm run smoke` — Playwright Chromium, 5 tests: core (now also asserts the
+  provisional "Står til 🥇" medal), VIP, Scoringsregler, shared controls in local
+  mode, and the resume banner (seeded localStorage, no live connect).
 - ✅ Verified by REST round-trip that **archiving persists `archivedSessions` to
   Firestore and survives a fresh read** — the restart issue was resume, not data loss.
 - ✅ **Shared mode is ACTIVE:** valid Firebase web API key (anonymous sign-in
