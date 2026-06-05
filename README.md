@@ -106,6 +106,23 @@ the phone as the primary saved state if you play from it.
   The player set must be exactly René, Thomas, Carsten, Tom or the import is
   rejected.
 
+## iPhone home screen & link previews
+
+**Add to Home Screen (looks like an app):**
+1. Open **https://renegram-dev.github.io/Jungs-Jydewhist/** in **Safari** (this
+   must be Safari, not Chrome, for the icon to apply).
+2. Tap the **Share** button (the square with an up-arrow).
+3. Tap **Add to Home Screen** → **Add**. It launches standalone with the
+   Jungs-Jydewhist icon (a green tile) and no Safari chrome.
+
+> If the icon doesn't update after a change, **remove the old home-screen
+> shortcut and add it again** (iOS caches the icon per shortcut).
+
+**Link previews:** sharing the link (or a `?room=` shared link) shows a preview
+card with the title, description and image where supported (iMessage, WhatsApp,
+Slack, etc.). Messaging apps **cache previews**, so a freshly changed image can
+take a while (or a re-send) to refresh.
+
 ## Delt spil (shared game mode)
 
 By default the app runs in **local mode** (localStorage, one device). It also has

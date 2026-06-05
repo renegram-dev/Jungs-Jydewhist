@@ -69,8 +69,12 @@ function png(size) {
   return Buffer.concat([sig, chunk('IHDR', ihdr), chunk('IDAT', idat), chunk('IEND', Buffer.alloc(0))]);
 }
 
-for (const size of [192, 512]) {
-  const out = new URL(`../public/icon-${size}.png`, import.meta.url);
-  writeFileSync(out, png(size));
-  console.log(`wrote public/icon-${size}.png`);
+const targets = [
+  { size: 192, file: 'icon-192.png' },
+  { size: 512, file: 'icon-512.png' },
+  { size: 180, file: 'apple-touch-icon.png' }, // iOS home-screen icon
+];
+for (const { size, file } of targets) {
+  writeFileSync(new URL(`../public/${file}`, import.meta.url), png(size));
+  console.log(`wrote public/${file}`);
 }
