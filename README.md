@@ -113,21 +113,34 @@ npm run build       # outputs static files to dist/
 npm run preview     # serve the built dist/ locally (also binds 0.0.0.0)
 ```
 
-## Deploy as a static site (optional)
+## Deploy (GitHub Pages — stable HTTPS URL)
 
-The build is fully static, so any static host works.
+This repo deploys automatically to **GitHub Pages** via GitHub Actions
+([.github/workflows/deploy.yml](.github/workflows/deploy.yml)) on every push to
+`main`. The site is served under a sub-path, so the workflow builds with
+`DEPLOY_BASE=/Jungs-Jydewhist/` (matching the repo name).
 
-- **Vercel / Netlify:** build with `npm run build` and deploy the `dist/` folder
-  (or connect the repo and use build command `npm run build`, output dir `dist`).
-- **GitHub Pages:** the site lives under a sub-path, so set the base path:
-  ```powershell
-  $env:DEPLOY_BASE = '/Jungs-Jydewhist/'
-  npm run build
-  # publish the dist/ folder to the gh-pages branch / Pages source
-  ```
+- **Live URL:** `https://renegram-dev.github.io/Jungs-Jydewhist/`
+- To redeploy: just push to `main` (or run the workflow manually from the
+  Actions tab). No PC needs to stay on.
 
-A fixed deploy URL keeps the origin stable → more reliable localStorage across
-sessions.
+Other static hosts also work (the build in `dist/` is fully static): on
+Vercel/Netlify use build command `npm run build`, output dir `dist` (root base,
+no `DEPLOY_BASE` needed).
+
+### Moving from the local/LAN version to the stable URL
+
+`localStorage` is **per origin**, so the LAN URL (`http://<PC-IP>:5173`) and the
+Pages URL are **separate stores** — saved games do not transfer automatically.
+To carry a game over:
+
+1. On the **old** URL (PC or the LAN URL on the phone), tap **Eksportér backup**
+   and keep the JSON file (AirDrop/email it to the phone, or save to Files).
+2. Open the **stable Pages URL** on the iPhone and **Add to Home Screen**.
+3. Tap **Importér backup** there and load the JSON — it lands as a new session.
+4. Use the **stable URL from now on** so your data stays on one origin.
+
+If you start fresh on the Pages URL, you can skip the export/import entirely.
 
 ## Testing / validation
 

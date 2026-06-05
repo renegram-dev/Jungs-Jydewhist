@@ -48,6 +48,12 @@ export default function SessionManager({ onClose }) {
         </button>
       </div>
 
+      <p className="note">
+        Data gemmes kun lokalt pr. browser/URL. Skifter du adresse eller enhed
+        (fx fra PC'ens lokale URL til den faste web-adresse): eksportér her og
+        importér på den nye adresse.
+      </p>
+
       <ul className="session-list" data-testid="session-list">
         {sessions.map((s) => {
           const active = s.id === state.activeSessionId;
