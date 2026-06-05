@@ -123,6 +123,23 @@ card with the title, description and image where supported (iMessage, WhatsApp,
 Slack, etc.). Messaging apps **cache previews**, so a freshly changed image can
 take a while (or a re-send) to refresh.
 
+### Updates & "my home-screen app shows an old version"
+The app has **no service worker** (freshness over offline caching) and checks for
+a newer build on launch and when it returns to the foreground. When the deployed
+build differs from the running one, a **"Ny version tilgængelig"** banner appears
+with a **Genindlæs** button. The running version/build is shown at the bottom of
+**Scoringsregler** (e.g. `Version: 1.0.0 · build a1b2c3d`), and the deployed build
+is at `https://renegram-dev.github.io/Jungs-Jydewhist/version.json`.
+
+If the iPhone home-screen app still looks stale:
+1. **Swipe it closed** in the app switcher and reopen it.
+2. Tap **Genindlæs** if the update banner shows (or pull/refresh).
+3. Still old? **Delete the home-screen shortcut** and re-add it from Safari
+   (Share → Add to Home Screen).
+4. Still old? **Settings → Safari → Advanced → Website Data**, remove
+   `renegram-dev.github.io`, then reopen.
+5. Confirm via the **Version/build** label in Scoringsregler vs. `version.json`.
+
 ## Delt spil (shared game mode)
 
 By default the app runs in **local mode** (localStorage, one device). It also has

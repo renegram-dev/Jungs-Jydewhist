@@ -76,6 +76,8 @@ test('Scoringsregler overview opens with the key rules text', async ({ page }) =
   await expect(rules).toContainText('undertricks × 5');
   await expect(rules).toContainText('Sol');
   await expect(rules).toContainText('Ren sol');
+  // Version/build label is shown at the bottom of the rules.
+  await expect(page.getByTestId('app-version')).toContainText('Version:');
 });
 
 // Firebase is configured, so the shared-mode controls are offered in local mode.

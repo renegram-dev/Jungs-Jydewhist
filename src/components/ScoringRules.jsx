@@ -1,6 +1,7 @@
 import React from 'react';
 import Modal from './Modal.jsx';
 import { biddingRows, baseExamples, vipExamples } from '../state/rules.js';
+import { APP_VERSION, APP_BUILD } from '../version.js';
 
 // Read-only scoring overview ("Scoringsregler"). Mobile-friendly so players can
 // check the rules at the table. Numbers are derived from the scoring engine.
@@ -123,6 +124,10 @@ export default function ScoringRules({ onClose }) {
             <li>Uafgjort deler medaljer (konkurrence-rangering: lige score deler plads, og næste plads springes over).</li>
           </ul>
         </section>
+
+        <p className="rules-version" data-testid="app-version">
+          Version: {APP_VERSION} · build {APP_BUILD}
+        </p>
       </div>
 
       <div className="modal-actions">

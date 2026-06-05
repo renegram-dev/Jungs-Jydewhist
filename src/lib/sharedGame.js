@@ -14,6 +14,7 @@ import {
 } from 'firebase/firestore';
 import { getFirebase, signInShared } from './firebase.js';
 import { PLAYERS } from './scoring.js';
+import { APP_VERSION } from '../version.js';
 import {
   generateRoomCode,
   isValidSharedDoc,
@@ -37,7 +38,7 @@ export {
 } from './sharedGameUtils.js';
 
 export const SCORING_VERSION = 2; // bumped when VIP-by-trump-card scoring landed
-export const APP_VERSION = '1.0.0';
+export { APP_VERSION };
 const COLLECTION = 'sharedGames';
 
 function gameRef(roomCode) {

@@ -38,6 +38,22 @@ body {
   min-height: 100%;
 }
 
+/* "Ny version tilgængelig" update banner (pinned at the very top) */
+.update-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px calc(10px);
+  background: var(--warn);
+  color: #1a1400;
+  font-weight: 800;
+}
+.update-banner .btn { min-height: 40px; background: #1a1400; color: #fff; }
+
 .screen {
   padding: 16px 16px calc(96px + env(safe-area-inset-bottom));
 }
@@ -341,3 +357,4 @@ h2 { font-size: 20px; margin: 8px 0; }
 .rules-table th, .rules-table td { text-align: left; padding: 7px 8px; border-bottom: 1px solid var(--panel-2); }
 .rules-table th { color: var(--muted); }
 .rules-table .vip-row td { color: #ffdf8a; }
+.rules-version { color: var(--muted); font-size: 13px; margin-top: 16px; text-align: center; }

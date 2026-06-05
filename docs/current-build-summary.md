@@ -16,6 +16,13 @@ _Last updated: 2026-06-05._
 - **CI note:** the deploy workflow logs a non-blocking *Node.js 20 actions
   deprecation* warning. It does not affect the build/deploy; bumping the action
   versions is a later cleanup (see [roadmap.md](roadmap.md)).
+- **Versioning / freshness:** there is **no service worker** (and `main.jsx`
+  defensively unregisters any stray one). The build injects `APP_VERSION` +
+  short-git-`build` ([../src/version.js](../src/version.js)) and emits
+  `version.json` into the output. On launch / foreground the app fetches
+  `version.json` (cache-busted) and shows a **"Ny version tilgængelig" → Genindlæs**
+  banner when the deployed build differs. The running version/build shows at the
+  bottom of Scoringsregler. iPhone refresh steps are in the README.
 
 ## Scope
 A mobile-first, frontend-only **scorekeeper** for the house-rule whist variant
@@ -105,16 +112,15 @@ shown as "(gammel scoring)". `vipPosition` is stored on the hand and validated o
 import. There's also a read-only **Scoringsregler** overview in-app.
 
 ## Validation status (this build)
-- ✅ `npm test` — 84 unit tests pass (scoring incl. VIP-by-position; storage
+- ✅ `npm test` — 88 unit tests pass (scoring incl. VIP-by-position; storage
   round-trip + legacy; shared-game utils incl. archive payload, cumulative,
-  remove archived, migration; **medals**: per-evening ranking + all tie cases,
-  aggregate counts, medal points, ranks-by-medal-points-not-cumulative,
-  provisional; shared-room metadata).
-- ✅ `npm run build` — production build succeeds (Firebase code-split into a lazy
-  chunk; main bundle ~unchanged).
-- ✅ `npm run smoke` — Playwright Chromium, 5 tests: core (now also asserts the
-  provisional "Står til 🥇" medal), VIP, Scoringsregler, shared controls in local
-  mode, and the resume banner (seeded localStorage, no live connect).
+  remove archived, migration; medals: ranking + all tie cases, aggregate, points,
+  ranks-by-medal-points; shared-room metadata; **update-check `isDifferentBuild`**).
+- ✅ `npm run build` — production build succeeds; emits `dist/version.json`
+  (Firebase code-split into a lazy chunk; main bundle ~unchanged).
+- ✅ `npm run smoke` — Playwright Chromium, 5 tests: core (provisional medal), VIP,
+  Scoringsregler (now also asserts the **Version/build** label), shared controls
+  in local mode, and the resume banner (seeded localStorage, no live connect).
 - ✅ Verified by REST round-trip that **archiving persists `archivedSessions` to
   Firestore and survives a fresh read** — the restart issue was resume, not data loss.
 - ✅ **Shared mode is ACTIVE:** valid Firebase web API key (anonymous sign-in
