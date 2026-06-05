@@ -1,6 +1,21 @@
 # Current build summary
 
-_Last updated: 2026-06-05 (initial build)._
+_Last updated: 2026-06-05._
+
+## Production deployment
+- **Stable production URL: https://renegram-dev.github.io/Jungs-Jydewhist/**
+  (GitHub Pages, auto-deployed from `main` via
+  [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml)).
+- **This is the URL to use for real play.** Open it on the iPhone and Add to
+  Home Screen. The **local dev server (`npm run host`) is no longer needed for
+  normal use** — only for development.
+- **Data lives per origin.** For real use, keep data on the Pages URL origin so
+  it persists across sessions. If any game data was entered on `localhost` or the
+  LAN URL (e.g. during testing), it must be moved with **Eksportér backup → Importér
+  backup** on the Pages URL — it does **not** transfer automatically.
+- **CI note:** the deploy workflow logs a non-blocking *Node.js 20 actions
+  deprecation* warning. It does not affect the build/deploy; bumping the action
+  versions is a later cleanup (see [roadmap.md](roadmap.md)).
 
 ## Scope
 A mobile-first, frontend-only **scorekeeper** for the house-rule whist variant

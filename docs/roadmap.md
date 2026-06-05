@@ -27,3 +27,8 @@ explicit approval (see [../CLAUDE.md](../CLAUDE.md)).
 ## Quality
 - Component-level tests for the forms and session manager.
 - Expanded smoke coverage (sessions, backup import/export, manual override).
+
+## CI / tooling
+- **Bump GitHub Actions versions to silence the Node.js 20 deprecation warning**
+  in [../.github/workflows/deploy.yml](../.github/workflows/deploy.yml). It is
+  **non-blocking** (the `@v4` actions still run fine) — a low-priority cleanup.
