@@ -1,0 +1,16 @@
+{
+  "name": "Jungs-Jydewhist",
+  "short_name": "Jydewhist",
+  "description": "Pointtæller til kortspillet Jungs-Jydewhist.",
+  "start_url": ".",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0f1411",
+  "theme_color": "#0b6b3a",
+  "lang": "da",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
