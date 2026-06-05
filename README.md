@@ -5,8 +5,14 @@ house-rule whist variant **Jungs-Jydewhist**, played by four fixed players:
 **René, Thomas, Carsten, Tom**.
 
 It is **not** a card game — it only keeps score for live, offline play. Built
-with React + Vite, **frontend-only**: no backend, no login, no database. All
-state is saved in your browser's `localStorage`.
+with React + Vite, **frontend-only** (no custom backend, no login server): local
+games are stored in your browser's `localStorage`, and an optional shared mode
+uses **Firebase** (Cloud Firestore + anonymous auth) so several phones can watch
+one game live.
+
+- **Live (production):** https://renegram-dev.github.io/Jungs-Jydewhist/
+- **Repo:** https://github.com/renegram-dev/Jungs-Jydewhist — GitHub Pages hosts
+  the **frontend only**; shared games live in Firebase. Release: **`v1.0-live`**.
 
 > Project working rules: [CLAUDE.md](CLAUDE.md) ·
 > Build summary: [docs/current-build-summary.md](docs/current-build-summary.md) ·
