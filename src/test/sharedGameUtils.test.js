@@ -7,8 +7,15 @@ import {
   hasFixedPlayers,
   isValidSharedDoc,
   mapSharedDocToSession,
+  buildArchiveEntry,
+  getArchivedSessions,
+  cumulativeTotals,
 } from '../lib/sharedGameUtils.js';
 import { PLAYERS } from '../lib/scoring.js';
+
+const [RENE, THOMAS, CARSTEN, TOM] = PLAYERS;
+const delta = (a, b, c, d) => ({ [RENE]: a, [THOMAS]: b, [CARSTEN]: c, [TOM]: d });
+const zeroSum = (t) => PLAYERS.reduce((s, p) => s + t[p], 0);
 
 describe('room codes', () => {
   it('generates codes from the safe alphabet, default length 6', () => {
@@ -72,5 +79,63 @@ describe('shared doc validation + mapping', () => {
 
   it('maps null to null', () => {
     expect(mapSharedDocToSession(null)).toBeNull();
+  });
+});
+
+describe('archive + cumulative scoring', () => {
+  it('buildArchiveEntry captures totals, handCount, hands and timestamps', () => {
+    const hands = [
+      { id: 'a', timestamp: '2026-06-05T18:00:00.000Z', delta: delta(10, 10, -10, -10) },
+      { id: 'b', timestamp: '2026-06-05T18:05:00.000Z', delta: delta(-15, -15, 15, 15) },
+    ];
+    const e = buildArchiveEntry({ name: 'Aften 1', hands });
+    expect(e.name).toBe('Aften 1');
+    expect(e.handCount).toBe(2);
+    expect(e.hands).toHaveLength(2);
+    expect(e.totals).toEqual(delta(-5, -5, 5, 5));
+    expect(zeroSum(e.totals)).toBe(0);
+    expect(e.startedAt).toBe('2026-06-05T18:00:00.000Z'); // first hand's time
+    expect(typeof e.archivedAt).toBe('string');
+    expect(typeof e.id).toBe('string');
+  });
+
+  it('getArchivedSessions treats missing/invalid as []', () => {
+    expect(getArchivedSessions(null)).toEqual([]);
+    expect(getArchivedSessions({})).toEqual([]);
+    expect(getArchivedSessions({ archivedSessions: 'nope' })).toEqual([]);
+    expect(getArchivedSessions({ archivedSessions: [{ id: 'x' }] })).toHaveLength(1);
+  });
+
+  it('cumulativeTotals sums two archived sessions + current hands and stays zero-sum', () => {
+    const data = {
+      archivedSessions: [
+        { totals: delta(10, 10, -10, -10) },
+        { totals: delta(-15, -15, 15, 15) },
+      ],
+      hands: [{ delta: delta(20, 20, -20, -20) }],
+    };
+    const c = cumulativeTotals(data);
+    expect(c).toEqual(delta(15, 15, -15, -15));
+    expect(zeroSum(c)).toBe(0);
+  });
+
+  it('cumulativeTotals handles a room with no archivedSessions (migration)', () => {
+    const c = cumulativeTotals({ hands: [{ delta: delta(10, 10, -10, -10) }] });
+    expect(c).toEqual(delta(10, 10, -10, -10));
+  });
+
+  it('simulated archive: current hands move into an archived entry and clear', () => {
+    const before = {
+      sessionName: 'Aften',
+      hands: [{ id: 'a', timestamp: '2026-06-05T18:00:00.000Z', delta: delta(10, 10, -10, -10) }],
+      archivedSessions: [],
+    };
+    const entry = buildArchiveEntry({ name: before.sessionName, hands: before.hands });
+    const after = { ...before, archivedSessions: [...getArchivedSessions(before), entry], hands: [] };
+
+    expect(after.hands).toHaveLength(0); // current cleared
+    expect(after.archivedSessions).toHaveLength(1); // evening preserved
+    // The score is preserved in cumulative even though current hands are gone.
+    expect(cumulativeTotals(after)).toEqual(delta(10, 10, -10, -10));
   });
 });

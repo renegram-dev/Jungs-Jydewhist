@@ -275,6 +275,22 @@ h2 { font-size: 20px; margin: 8px 0; }
 .shared-actions .btn { flex: 1; min-width: 130px; }
 .room-code { font-size: 16px; flex-basis: 100%; }
 .room-code strong { font-variant-numeric: tabular-nums; letter-spacing: 1px; font-size: 19px; }
+.shared-note { flex-basis: 100%; margin: 4px 0 0; font-size: 13px; }
+
+/* Cumulative / archived history */
+.cum-section { margin-bottom: 18px; }
+.cum-section h3 { margin: 0 0 8px; font-size: 17px; color: var(--pos); }
+.cum-totals { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.cum-cell { display: flex; justify-content: space-between; background: var(--panel); padding: 10px 12px; border-radius: 10px; }
+.cum-name { font-weight: 600; }
+.cum-val { font-weight: 800; font-variant-numeric: tabular-nums; }
+.cum-val.pos { color: var(--pos); }
+.cum-val.neg { color: var(--neg); }
+.archive-list { list-style: none; margin: 0; padding: 0; }
+.archive-item { background: var(--panel); border-radius: var(--radius); padding: 10px 12px; margin-bottom: 10px; }
+.archive-head { width: 100%; background: transparent; border: none; color: var(--text); display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 4px 0 8px; cursor: pointer; }
+.archive-title { font-size: 17px; font-weight: 700; }
+.archive-sub { color: var(--muted); font-size: 13px; }
 
 /* Scoring rules overview */
 .rules-section { margin-bottom: 18px; }

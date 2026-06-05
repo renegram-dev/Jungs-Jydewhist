@@ -81,6 +81,10 @@ export default function SharedBar() {
           <button className="btn btn-danger-outline" onClick={actions.leaveShared} data-testid="leave-shared-btn">
             Forlad delt spil
           </button>
+          <p className="note shared-note" data-testid="shared-note">
+            Rummet er permanent. Alle med linket/koden kan se det aktuelle spil og
+            den samlede historik. Kun værten kan redigere.
+          </p>
         </div>
       )}
 

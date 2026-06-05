@@ -47,3 +47,16 @@ Prereq: valid web config in `src/firebase.config.js`, Anonymous Auth enabled, an
 - [ ] Viewer can still **Kopiér score**, open **Scoringsregler**, see history.
 - [ ] Reopen the link later → the shared game is still there (Firestore persistence).
 - [ ] A viewer attempting to write is blocked (read-only UI; rules also deny it).
+
+### Manual — long-term history / cumulative (shared)
+- [ ] Host plays a few hands, then **Arkivér aften og start ny** → active board
+      clears; same room code/link remain.
+- [ ] **Samlet historik** (host and viewer): shows the archived evening with its
+      totals + hand count, the (now empty) current evening separately, and a
+      **cumulative** total that still equals the archived evening's totals.
+- [ ] Play another evening and archive it → cumulative = sum of both evenings;
+      it stays **zero-sum** (no warning).
+- [ ] Expanding an archived evening shows its hand history.
+- [ ] Viewers see **Samlet historik** but have **no** Arkivér / Nulstil buttons.
+- [ ] **Nulstil aktuel session** in shared mode shows the strong "rydder uden at
+      arkivere" warning before clearing.

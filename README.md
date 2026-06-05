@@ -131,6 +131,24 @@ kept separate; local sessions and shared games are not auto-merged.
 - **Viewers** can see the scoreboard, history, Scoringsregler, and Kopiér score,
   but cannot add/undo/clear/delete hands or import into the shared game.
 
+### Long-term history & cumulative score
+A shared room is **persistent and reused across game nights** — the room link/code
+is effectively the access key. The room keeps a long-term log so the group sees
+**cumulative scoring over time**:
+- **Host:** when an evening ends, tap **Arkivér aften og start ny**. The current
+  hands are saved (with their final totals) into the room's archive and the active
+  board is cleared for the next evening — same room code, link and players.
+- **Everyone (host + viewers):** tap **Samlet historik** to see the **cumulative
+  lifetime total** (all archived evenings + the current one), the current evening
+  shown separately, and each archived evening (name, date, hand count, totals, with
+  expandable hand history).
+- **Nulstil aktuel session** still exists but is the *destructive* option — it
+  clears the active evening **without** archiving it (with a clear warning). Prefer
+  **Arkivér aften og start ny** to preserve history.
+
+Cumulative totals are always zero-sum (a warning shows otherwise). Older rooms
+created before this feature simply have an empty archive — nothing breaks.
+
 ### Firebase setup (one-time, by the project owner)
 The web config lives in [src/firebase.config.js](src/firebase.config.js) — it is
 **not a secret** (security comes from Firestore rules). Steps:

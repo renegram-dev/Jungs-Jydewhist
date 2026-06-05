@@ -37,6 +37,12 @@ optional **shared mode ("Delt spil")** backed by Cloud Firestore.
   [../src/firebase.config.js](../src/firebase.config.js); rules in
   [../firestore.rules](../firestore.rules). Security: room-code read, host-only
   write, no listing. Local and shared data are kept separate (no auto-merge).
+- **Long-term history (shared):** a room is reused across game nights. The host's
+  **Arkivér aften og start ny** moves the current hands (with frozen totals) into
+  `archivedSessions` and clears the active board; **Samlet historik** shows the
+  **cumulative** lifetime score (archived + current) to host and viewers. Missing
+  `archivedSessions` is treated as `[]` (old rooms keep working); cumulative is
+  zero-sum. No scoring/auth/rules change (same `sharedGames/{roomCode}` doc).
 
 ## Architecture
 - **Pure scoring engine** — [../src/lib/scoring.js](../src/lib/scoring.js). No
@@ -79,16 +85,16 @@ shown as "(gammel scoring)". `vipPosition` is stored on the hand and validated o
 import. There's also a read-only **Scoringsregler** overview in-app.
 
 ## Validation status (this build)
-- ✅ `npm test` — 59 unit tests pass (scoring incl. all worked numeric cases, the
-  full VIP-by-position set + reject-without-position; storage round-trip, VIP
-  round-trip + legacy acceptance, rejections; shared-game pure utils: room codes,
-  share link, doc validation/mapping).
+- ✅ `npm test` — 64 unit tests pass (scoring incl. VIP-by-position; storage
+  round-trip + legacy; shared-game pure utils: room codes, share link, doc
+  validation/mapping, **archive entry + cumulative totals + migration**).
 - ✅ `npm run build` — production build succeeds (Firebase code-split into a lazy
   chunk; main bundle ~unchanged).
 - ✅ `npm run smoke` — Playwright Chromium, 4 tests: core, VIP, Scoringsregler, and
   shared-mode controls present in local mode (no live connect).
-- ⏳ Manual iPhone-over-Wi-Fi pass — see [validation-checklist.md](validation-checklist.md).
-- ⏳ **Shared mode activation pending two owner actions:** (1) a **valid** Firebase
-  web API key (the first key provided was rejected by Google as `API_KEY_INVALID`),
-  and (2) **publishing the Firestore rules** (the `firebase` CLI here is not
-  authenticated). Live two-phone sync is a manual test once both are done.
+- ✅ **Shared mode is ACTIVE:** valid Firebase web API key (anonymous sign-in
+  verified), Anonymous Auth on, **Firestore rules published** (authed read returns
+  404, not 403), deployed to Pages. The archive/cumulative feature uses the same
+  doc + host-only rule — **no rules republish needed**.
+- ⏳ Manual iPhone-over-Wi-Fi pass and **live two-phone shared test** (incl.
+  archive + Samlet historik) — see [validation-checklist.md](validation-checklist.md).

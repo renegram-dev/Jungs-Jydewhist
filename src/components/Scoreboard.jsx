@@ -8,6 +8,7 @@ import ConfirmDialog from './ConfirmDialog.jsx';
 import ImportDialog from './ImportDialog.jsx';
 import ScoringRules from './ScoringRules.jsx';
 import SharedBar from './SharedBar.jsx';
+import CumulativeHistory from './CumulativeHistory.jsx';
 
 function signed(v) {
   if (v > 0) return `+${v}`;
@@ -16,9 +17,10 @@ function signed(v) {
 
 export default function Scoreboard({ onNewHand, onOpenSessions }) {
   const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, actions } = useAppState();
-  const [confirm, setConfirm] = useState(null); // 'reset' | null
+  const [confirm, setConfirm] = useState(null); // 'reset' | 'archive' | null
   const [importOpen, setImportOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
+  const [cumOpen, setCumOpen] = useState(false);
   const [toast, setToast] = useState(null);
 
   function flash(msg) {
@@ -107,6 +109,16 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
             <button className="btn btn-primary big" onClick={onNewHand} data-testid="new-hand-btn">
               Nyt spil
             </button>
+            {isShared && (
+              <button
+                className="btn btn-primary"
+                onClick={() => setConfirm('archive')}
+                disabled={handCount === 0}
+                data-testid="archive-btn"
+              >
+                Arkivér aften og start ny
+              </button>
+            )}
             <button
               className="btn btn-secondary"
               onClick={() => actions.undoLast()}
@@ -143,6 +155,11 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
           </>
         )}
 
+        {isShared && (
+          <button className="btn btn-secondary" onClick={() => setCumOpen(true)} data-testid="cumulative-btn">
+            Samlet historik
+          </button>
+        )}
         <button className="btn btn-secondary" onClick={handleCopy} data-testid="copy-btn">
           Kopiér score
         </button>
@@ -153,11 +170,29 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
 
       <HandHistory session={activeSession} canEdit={canEdit} onDeleteHand={(id) => actions.deleteHand(id)} />
 
+      {confirm === 'archive' && (
+        <ConfirmDialog
+          title="Arkivér aften og start ny?"
+          message={`Aftenen "${activeSession.name}" med ${handCount} spil gemmes i Samlet historik, og der startes en ny aften. Den samlede stilling bevares.`}
+          confirmLabel="Arkivér"
+          onConfirm={async () => {
+            const r = await actions.archiveSession();
+            setConfirm(null);
+            flash(r && r.ok ? 'Aften arkiveret — ny aften startet' : (r && r.error) || 'Kunne ikke arkivere');
+          }}
+          onCancel={() => setConfirm(null)}
+        />
+      )}
+
       {confirm === 'reset' && (
         <ConfirmDialog
           title="Nulstil aktuel session?"
-          message={`Alle ${handCount} spil i "${activeSession.name}" slettes.`}
-          confirmLabel="Nulstil"
+          message={
+            isShared
+              ? 'Dette rydder den aktive aften UDEN at arkivere den (scoren går tabt). Vil du gemme aftenen, så brug i stedet “Arkivér aften og start ny”.'
+              : `Alle ${handCount} spil i "${activeSession.name}" slettes.`
+          }
+          confirmLabel="Nulstil uden at arkivere"
           danger
           onConfirm={() => {
             actions.clearSession();
@@ -179,6 +214,8 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
       )}
 
       {rulesOpen && <ScoringRules onClose={() => setRulesOpen(false)} />}
+
+      {cumOpen && <CumulativeHistory onClose={() => setCumOpen(false)} />}
     </div>
   );
 }

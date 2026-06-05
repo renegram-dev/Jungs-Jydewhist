@@ -14,7 +14,12 @@ import {
 } from 'firebase/firestore';
 import { getFirebase, signInShared } from './firebase.js';
 import { PLAYERS } from './scoring.js';
-import { generateRoomCode, isValidSharedDoc } from './sharedGameUtils.js';
+import {
+  generateRoomCode,
+  isValidSharedDoc,
+  buildArchiveEntry,
+  getArchivedSessions,
+} from './sharedGameUtils.js';
 
 // Re-export pure helpers + auth so callers need only this module.
 export { signInShared, isFirebaseConfigured } from './firebase.js';
@@ -24,6 +29,9 @@ export {
   isValidRoomCode,
   buildShareLink,
   mapSharedDocToSession,
+  buildArchiveEntry,
+  getArchivedSessions,
+  cumulativeTotals,
 } from './sharedGameUtils.js';
 
 export const SCORING_VERSION = 2; // bumped when VIP-by-trump-card scoring landed
@@ -127,6 +135,20 @@ export async function deleteSharedHand(roomCode, handId) {
 
 export async function updateSharedGame(roomCode, patch) {
   await updateDoc(gameRef(roomCode), { ...patch, updatedAt: serverTimestamp() });
+}
+
+// "Arkivér aften og start ny": move the current hands into archivedSessions
+// (with frozen totals) and clear the active hands. Same doc, host-only write.
+export async function archiveSharedSession(roomCode) {
+  const ref = gameRef(roomCode);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) throw new Error('Delt spil findes ikke.');
+  const data = snap.data();
+  const hands = Array.isArray(data.hands) ? data.hands : [];
+  if (hands.length === 0) throw new Error('Ingen spil at arkivere.');
+  const entry = buildArchiveEntry({ name: data.sessionName, hands });
+  const archivedSessions = [...getArchivedSessions(data), entry];
+  await updateDoc(ref, { archivedSessions, hands: [], updatedAt: serverTimestamp() });
 }
 
 export async function deleteSharedGame(roomCode) {

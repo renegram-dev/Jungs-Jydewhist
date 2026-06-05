@@ -38,6 +38,8 @@ import {
   isValidRoomCode,
   buildShareLink,
   mapSharedDocToSession,
+  getArchivedSessions,
+  cumulativeTotals as computeCumulativeTotals,
 } from '../lib/sharedGameUtils.js';
 
 const AppStateContext = createContext(null);
@@ -258,6 +260,18 @@ export function AppStateProvider({ children }) {
     [mode, roomCode],
   );
 
+  // Host-only: archive the current evening and start a new one (shared mode).
+  const doArchive = useCallback(async () => {
+    if (mode !== 'shared-host') return { ok: false, error: 'Kun værten kan arkivere.' };
+    try {
+      const m = await loadShared();
+      await m.archiveSharedSession(roomCode);
+      return { ok: true };
+    } catch (e) {
+      return { ok: false, error: errMsg(e) };
+    }
+  }, [mode, roomCode]);
+
   // Auto-join a shared game from ?room=CODE on first load.
   const didInit = useRef(false);
   useEffect(() => {
@@ -277,6 +291,16 @@ export function AppStateProvider({ children }) {
   );
   const shareLink = isShared && roomCode ? buildShareLink(roomCode) : null;
 
+  // Long-term archive + cumulative score (shared mode only).
+  const archivedSessions = useMemo(
+    () => (isShared ? getArchivedSessions(sharedData) : []),
+    [isShared, sharedData],
+  );
+  const cumulativeTotals = useMemo(
+    () => (isShared ? computeCumulativeTotals(sharedData) : totals),
+    [isShared, sharedData, totals],
+  );
+
   const actions = useMemo(
     () => ({
       // editing (mode-aware)
@@ -284,6 +308,7 @@ export function AppStateProvider({ children }) {
       undoLast: doUndoLast,
       clearSession: doClear,
       deleteHand: doDeleteHand,
+      archiveSession: doArchive,
       // local-only session management
       createSession: (name) => dispatch({ type: 'CREATE_SESSION', name }),
       selectSession: (id) => dispatch({ type: 'SELECT_SESSION', id }),
@@ -300,7 +325,7 @@ export function AppStateProvider({ children }) {
       joinShared,
       leaveShared,
     }),
-    [state, doAddHand, doUndoLast, doClear, doDeleteHand, startSharedGame, joinShared, leaveShared],
+    [state, doAddHand, doUndoLast, doClear, doDeleteHand, doArchive, startSharedGame, joinShared, leaveShared],
   );
 
   const value = {
@@ -318,6 +343,8 @@ export function AppStateProvider({ children }) {
     sharedStatus,
     sharedError,
     shareLink,
+    archivedSessions,
+    cumulativeTotals,
     actions,
   };
   return <AppStateContext.Provider value={value}>{children}</AppStateContext.Provider>;

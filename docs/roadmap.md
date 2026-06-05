@@ -11,6 +11,9 @@ explicit approval (see [../CLAUDE.md](../CLAUDE.md)).
 - Optional sync of *local* sessions to the cloud (currently local stays local).
 
 ## Shared mode (Firebase) follow-ups
+- Custom per-evening names, and rename/delete of archived evenings in
+  **Samlet historik** (today each archived evening takes the room name + date).
+- Export the whole shared room (incl. `archivedSessions`) as a JSON backup.
 - **App Check / abuse mitigation** so anonymous users can't spam game creation.
 - Auto-clean or TTL for old shared games (Firestore usage hygiene).
 - "Kopiér lokal session til delt spil" as a distinct action (today "Start delt

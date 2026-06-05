@@ -75,3 +75,56 @@ export function mapSharedDocToSession(data) {
     shared: true,
   };
 }
+
+// --- Long-term archive / cumulative scoring (shared mode) ---
+
+function totalsFromHands(hands, players = PLAYERS) {
+  const t = {};
+  for (const p of players) t[p] = 0;
+  for (const h of hands || []) {
+    for (const p of players) t[p] += h.delta?.[p] ?? 0;
+  }
+  return t;
+}
+
+function newArchiveId() {
+  if (typeof crypto !== 'undefined' && crypto.randomUUID) return crypto.randomUUID();
+  return `arch-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Missing archivedSessions is treated as [] (migration-safe). */
+export function getArchivedSessions(data) {
+  return Array.isArray(data?.archivedSessions) ? data.archivedSessions : [];
+}
+
+/**
+ * Build an archived-session entry (one "evening") from the shared game's current
+ * name + hands. Totals are computed and frozen into the entry.
+ */
+export function buildArchiveEntry({ name, hands } = {}, now = new Date()) {
+  const list = Array.isArray(hands) ? hands : [];
+  return {
+    id: newArchiveId(),
+    name: name || 'Aften',
+    startedAt: list.length && list[0].timestamp ? list[0].timestamp : now.toISOString(),
+    archivedAt: now.toISOString(),
+    hands: list.map((h) => ({ ...h })),
+    totals: totalsFromHands(list),
+    handCount: list.length,
+  };
+}
+
+/**
+ * Lifetime totals = sum of every archived session's stored totals + the totals of
+ * the current (not-yet-archived) hands. Always zero-sum when inputs are.
+ */
+export function cumulativeTotals(data, players = PLAYERS) {
+  const t = {};
+  for (const p of players) t[p] = 0;
+  for (const a of getArchivedSessions(data)) {
+    for (const p of players) t[p] += a.totals?.[p] ?? 0;
+  }
+  const current = totalsFromHands(data?.hands, players);
+  for (const p of players) t[p] += current[p];
+  return t;
+}
