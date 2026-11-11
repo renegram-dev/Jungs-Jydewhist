@@ -2,12 +2,11 @@ import React, { useState } from 'react';
 import { useAppState } from '../state/AppStateContext.jsx';
 import { sortedByScore, totalsAreZeroSum } from '../state/selectors.js';
 import { buildScoreText } from '../state/report.js';
-import { copyText, downloadTextFile, backupFilename } from '../lib/browser.js';
+import { copyText } from '../lib/browser.js';
 import HandHistory from './HandHistory.jsx';
 import ConfirmDialog from './ConfirmDialog.jsx';
-import ImportDialog from './ImportDialog.jsx';
 import ScoringRules from './ScoringRules.jsx';
-import SharedBar from './SharedBar.jsx';
+import { AccountBar } from './HistoryGate.jsx';
 import CumulativeHistory from './CumulativeHistory.jsx';
 import { MEDALS } from '../lib/sharedGameUtils.js';
 
@@ -16,11 +15,9 @@ function signed(v) {
   return `${v}`; // 0 -> "0", negatives keep their sign
 }
 
-export default function Scoreboard({ onNewHand, onOpenSessions }) {
-  const { activeSession, totals, lastSavedAt, saveError, isShared, canEdit, resumeRoom, provisionalMedals, actions } =
-    useAppState();
+export default function Scoreboard({ onNewHand }) {
+  const { activeSession, totals, canEdit, writeError, provisionalMedals, actions } = useAppState();
   const [confirm, setConfirm] = useState(null); // 'reset' | 'archive' | null
-  const [importOpen, setImportOpen] = useState(false);
   const [rulesOpen, setRulesOpen] = useState(false);
   const [cumOpen, setCumOpen] = useState(false);
   const [toast, setToast] = useState(null);
@@ -31,18 +28,8 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
     flash._t = window.setTimeout(() => setToast(null), 3000);
   }
 
-  // In shared mode the session may briefly be null while connecting.
-  if (!activeSession) {
-    return (
-      <div className="screen" data-testid="scoreboard">
-        <header className="screen-header column">
-          <h1 data-testid="app-title">Jungs-Jydewhist</h1>
-        </header>
-        <SharedBar />
-        {isShared && <p className="note">Forbinder til delt spil…</p>}
-      </div>
-    );
-  }
+  // App.jsx only renders the scoreboard from a server-confirmed document.
+  if (!activeSession) return null;
 
   const order = sortedByScore(totals);
   const zeroSum = totalsAreZeroSum(totals);
@@ -53,53 +40,21 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
     flash(ok ? 'Score kopieret til udklipsholder' : 'Kunne ikke kopiere');
   }
 
-  function handleExport() {
-    downloadTextFile(backupFilename(activeSession.name), actions.exportBackup());
-    flash('Backup downloadet');
-  }
-
   return (
     <div className="screen" data-testid="scoreboard">
       <header className="screen-header column">
         <h1 data-testid="app-title">Jungs-Jydewhist</h1>
-        <button className="session-name" onClick={onOpenSessions} disabled={isShared} data-testid="active-session-name">
-          {activeSession.name} {!isShared && '▾'}
-        </button>
-        {!isShared && (
-          <div className="saved-indicator" data-testid="saved-indicator">
-            {saveError ? (
-              <span className="bad">⚠ {saveError}</span>
-            ) : lastSavedAt ? (
-              <span className="ok">✓ Gemt lokalt kl. {lastSavedAt.toLocaleTimeString('da-DK')}</span>
-            ) : (
-              <span>Gemmes lokalt i denne browser</span>
-            )}
-          </div>
-        )}
+        <div className="session-name" data-testid="active-session-name">{activeSession.name}</div>
       </header>
 
-      {!isShared && resumeRoom && (
-        <div className="resume-banner" data-testid="resume-banner">
-          <div className="resume-text">
-            <strong>Fortsæt delt spil?</strong>
-            <span>
-              {resumeRoom.sessionName ? `"${resumeRoom.sessionName}" · ` : ''}kode{' '}
-              <b>{resumeRoom.roomCode}</b>. Du er i lokal tilstand — den delte historik findes i
-              det delte rum, ikke lokalt.
-            </span>
-          </div>
-          <div className="resume-actions">
-            <button className="btn btn-primary" onClick={() => actions.resumeShared()} data-testid="resume-btn">
-              Fortsæt delt spil
-            </button>
-            <button className="btn btn-secondary" onClick={() => actions.stayLocal()} data-testid="stay-local-btn">
-              Bliv lokal
-            </button>
-          </div>
+      <AccountBar />
+
+      {writeError && (
+        <div className="warning" role="alert" data-testid="write-error">
+          ⚠ Ikke gemt: {writeError}{' '}
+          <button className="btn btn-secondary btn-icon" onClick={actions.dismissWriteError}>OK</button>
         </div>
       )}
-
-      <SharedBar />
 
       {!zeroSum && (
         <div className="warning" data-testid="zero-sum-warning">
@@ -139,16 +94,14 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
             <button className="btn btn-primary big" onClick={onNewHand} data-testid="new-hand-btn">
               Nyt spil
             </button>
-            {isShared && (
-              <button
-                className="btn btn-primary"
-                onClick={() => setConfirm('archive')}
-                disabled={handCount === 0}
-                data-testid="archive-btn"
-              >
-                Arkivér aften og start ny
-              </button>
-            )}
+            <button
+              className="btn btn-primary"
+              onClick={() => setConfirm('archive')}
+              disabled={handCount === 0}
+              data-testid="archive-btn"
+            >
+              Arkivér aften og start ny
+            </button>
             <button
               className="btn btn-secondary"
               onClick={() => actions.undoLast()}
@@ -168,28 +121,9 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
           </>
         )}
 
-        {!isShared && (
-          <>
-            <button className="btn btn-secondary" onClick={() => actions.createSession()} data-testid="new-session-btn">
-              Ny session
-            </button>
-            <button className="btn btn-secondary" onClick={onOpenSessions} data-testid="choose-session-btn">
-              Vælg session
-            </button>
-            <button className="btn btn-secondary" onClick={handleExport} data-testid="export-btn">
-              Eksportér backup
-            </button>
-            <button className="btn btn-secondary" onClick={() => setImportOpen(true)} data-testid="import-btn">
-              Importér backup
-            </button>
-          </>
-        )}
-
-        {isShared && (
-          <button className="btn btn-secondary" onClick={() => setCumOpen(true)} data-testid="cumulative-btn">
-            Samlet historik
-          </button>
-        )}
+        <button className="btn btn-secondary" onClick={() => setCumOpen(true)} data-testid="cumulative-btn">
+          Samlet historik
+        </button>
         <button className="btn btn-secondary" onClick={handleCopy} data-testid="copy-btn">
           Kopiér score
         </button>
@@ -217,29 +151,15 @@ export default function Scoreboard({ onNewHand, onOpenSessions }) {
       {confirm === 'reset' && (
         <ConfirmDialog
           title="Nulstil aktuel session?"
-          message={
-            isShared
-              ? 'Dette rydder den aktive aften UDEN at arkivere den (scoren går tabt). Vil du gemme aftenen, så brug i stedet “Arkivér aften og start ny”.'
-              : `Alle ${handCount} spil i "${activeSession.name}" slettes.`
-          }
+          message="Dette rydder den aktive aften UDEN at arkivere den (scoren går tabt). Vil du gemme aftenen, så brug i stedet “Arkivér aften og start ny”."
           confirmLabel="Nulstil uden at arkivere"
           danger
-          onConfirm={() => {
-            actions.clearSession();
+          onConfirm={async () => {
+            const r = await actions.clearSession();
             setConfirm(null);
-            flash('Sessionen er nulstillet');
+            flash(r.ok ? 'Sessionen er nulstillet' : 'Kunne ikke nulstille');
           }}
           onCancel={() => setConfirm(null)}
-        />
-      )}
-
-      {importOpen && (
-        <ImportDialog
-          onClose={() => setImportOpen(false)}
-          onImported={(name) => {
-            setImportOpen(false);
-            flash(`Importeret som ny session: ${name}`);
-          }}
         />
       )}
 

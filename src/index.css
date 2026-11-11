@@ -358,3 +358,17 @@ h2 { font-size: 20px; margin: 8px 0; }
 .rules-table th { color: var(--muted); }
 .rules-table .vip-row td { color: #ffdf8a; }
 .rules-version { color: var(--muted); font-size: 13px; margin-top: 16px; text-align: center; }
+
+/* Opaque block shown while the cloud connection is not server-confirmed. */
+.conn-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: var(--bg);
+  padding: 24px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  align-items: stretch;
+  text-align: center;
+}

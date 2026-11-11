@@ -5,7 +5,7 @@ Concise instructions for anyone (human or AI) working in this repo.
 ## Project purpose
 Jungs-Jydewhist is a **mobile-first, frontend-only scorekeeper** for René's
 house-rule Danish whist variant. It is **not** a card game — it only records
-hands and keeps score for live, offline play by four fixed players: René,
+hands and keeps score for live play by four fixed players: René,
 Thomas, Carsten, Tom.
 
 ## Critical rule
@@ -17,31 +17,33 @@ implement generic Whist scoring and do **not** add contracts beyond the 30 in
 ## Architecture rules
 - Keep **scoring logic pure** and separate from the UI — all of it lives in
   [src/lib/scoring.js](src/lib/scoring.js) (no DOM, no React, no storage).
-- Keep **localStorage / session persistence** separate from scoring — it lives
-  in [src/lib/storage.js](src/lib/storage.js). Storage may import scoring; never
-  the reverse.
+- Keep **persistence** separate from scoring. Storage/cloud code may import scoring;
+  never the reverse.
 - The scoreboard is **always recomputed** from saved hand deltas
   ([src/state/selectors.js](src/state/selectors.js)); totals are never stored.
 - React state has a single source of truth in
   [src/state/AppStateContext.jsx](src/state/AppStateContext.jsx); it is the only
-  place that writes to localStorage.
+  place that talks to the cloud store.
 
-## Shared mode ("Delt spil")
-- Optional. **Local mode stays the default and unchanged** (localStorage).
-- In shared mode, **Cloud Firestore is the source of truth** (`sharedGames/{roomCode}`).
-- Keep the layers separate: scoring stays pure; Firestore wrappers live in
-  [src/lib/sharedGame.js](src/lib/sharedGame.js) / [src/lib/firebase.js](src/lib/firebase.js);
-  pure helpers (no Firebase import) in [src/lib/sharedGameUtils.js](src/lib/sharedGameUtils.js).
-- The Firebase SDK is **lazy-loaded** (dynamic import) — don't statically import it
-  into the main bundle.
-- **Anonymous Auth only** — no usernames/passwords. **No Firebase Admin SDK.** Web
-  config is **not a secret**; security is enforced by [firestore.rules](firestore.rules)
-  (auth required, room-code read, **host-only** write, no `list`). Don't loosen these.
-- Host edits; **viewers are strictly read-only** (gate UI on `canEdit`). All clients
-  update via `onSnapshot`.
+## Cloud-first mode (current architecture)
+- The app is **online-only**. **Cloud Firestore is the only source of truth**: one
+  permanent document `history/main` (active `hands` + `archivedSessions`). There is
+  no local mode, no offline cache and no silent local fallback.
+- Layers: scoring stays pure; Firestore wrappers in
+  [src/lib/historyStore.js](src/lib/historyStore.js) / [src/lib/firebase.js](src/lib/firebase.js);
+  pure patch/export logic in [src/lib/historyOps.js](src/lib/historyOps.js); pure
+  archive/medal helpers in [src/lib/sharedGameUtils.js](src/lib/sharedGameUtils.js).
+  `historyStoreFake.js` is test-only (VITE_E2E=1). The Firebase SDK is lazy-loaded.
+- **Google sign-in, single owner.** Access is enforced by [firestore.rules](firestore.rules)
+  (verified email must equal `config/access.ownerEmail`, set by hand in the console —
+  never commit the address). **No Firebase Admin SDK**; no paid plan.
+- Every write is a **transaction** and is only reported as saved after Firestore
+  acknowledged it. Never show scores from a non-server-confirmed snapshot.
+- `storage.js` (old localStorage sessions) is dormant: nothing reads it for display.
+- Setup, export/recovery and rollback: [docs/cloud-setup.md](docs/cloud-setup.md).
 
 ## Scope guardrails (MVP)
-- No custom backend, no password login, no Firebase Admin SDK, no paid plan.
+- No custom backend, no password login, no Firebase Admin SDK, no paid plan, no offline mode.
 - Players are **fixed** (René, Thomas, Carsten, Tom) — no player editing.
 - **Use Danish UI strings.** Code, identifiers and comments are English.
 - **Do not expand scope without explicit approval.** New features → add to
