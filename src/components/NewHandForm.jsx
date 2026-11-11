@@ -24,6 +24,8 @@ export default function NewHandForm({ onDone }) {
   const [tricks, setTricks] = useState(7);
   const [vipPosition, setVipPosition] = useState(null); // 1 | 2 | 3 for VIP
   const [manualOverride, setManualOverride] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(null);
   const [overrideDelta, setOverrideDelta] = useState(() => zeroDelta());
 
   const contract = getContract(contractId);
@@ -75,8 +77,8 @@ export default function NewHandForm({ onDone }) {
     setOverrideDelta((d) => ({ ...d, [player]: Number.isNaN(n) ? 0 : n }));
   }
 
-  function handleSave() {
-    if (!canSave) return;
+  async function handleSave() {
+    if (!canSave || saving) return;
     const hand = makeHand({
       contractId,
       declarer,
@@ -88,8 +90,12 @@ export default function NewHandForm({ onDone }) {
       manualOverride,
       delta: manualOverride ? overrideDelta : calc.delta,
     });
-    actions.addHand(hand);
-    onDone();
+    setSaving(true);
+    setSaveError(null);
+    const res = await actions.addHand(hand);
+    setSaving(false);
+    if (res.ok) onDone(); // only after Firestore acknowledged the write
+    else setSaveError(res.error);
   }
 
   return (
@@ -256,6 +262,9 @@ export default function NewHandForm({ onDone }) {
         )}
       </div>
 
+      {saveError && (
+        <p className="error" role="alert" data-testid="save-error">Ikke gemt: {saveError}</p>
+      )}
       <div className="action-bar">
         <button className="btn btn-secondary" onClick={onDone} data-testid="cancel-hand">
           Annuller
@@ -263,10 +272,10 @@ export default function NewHandForm({ onDone }) {
         <button
           className="btn btn-primary"
           onClick={handleSave}
-          disabled={!canSave}
+          disabled={!canSave || saving}
           data-testid="save-hand"
         >
-          Gem spil
+          {saving ? 'Gemmer…' : 'Gem spil'}
         </button>
       </div>
     </div>

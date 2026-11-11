@@ -38,6 +38,7 @@ export default function CumulativeHistory({ onClose }) {
     useAppState();
   const [openId, setOpenId] = useState(null);
   const [confirmId, setConfirmId] = useState(null);
+  const [deleteError, setDeleteError] = useState(null);
   const cumZero = totalsAreZeroSum(cumulativeTotals);
   const currentHands = activeSession ? activeSession.hands.length : 0;
   const standings = medalStandings || [];
@@ -140,6 +141,7 @@ export default function CumulativeHistory({ onClose }) {
         )}
       </section>
 
+      {deleteError && <p className="error" role="alert" data-testid="delete-error">Ikke slettet: {deleteError}</p>}
       <div className="modal-actions">
         <button className="btn btn-primary" onClick={onClose}>Luk</button>
       </div>
@@ -150,9 +152,10 @@ export default function CumulativeHistory({ onClose }) {
           message="Dette fjerner aftenen fra den samlede historik og ændrer den samlede score. Handlingen kan ikke fortrydes."
           confirmLabel="Slet aften"
           danger
-          onConfirm={() => {
-            actions.deleteArchived(confirmId);
+          onConfirm={async () => {
+            const r = await actions.deleteArchived(confirmId);
             setConfirmId(null);
+            setDeleteError(r.ok ? null : r.error);
           }}
           onCancel={() => setConfirmId(null)}
         />

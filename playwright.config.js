@@ -1,7 +1,8 @@
 import { defineConfig, devices } from '@playwright/test';
 
 // Minimal smoke runner. Auto-starts the Vite dev server and drives Chromium.
-// Each test gets a fresh browser context (empty localStorage), so runs are clean.
+// Runs against a test-only in-memory history store (VITE_E2E=1, set below) — no
+// Firebase needed. Each test gets a fresh browser context, so runs are clean.
 export default defineConfig({
   testDir: './e2e',
   timeout: 30_000,
@@ -14,9 +15,10 @@ export default defineConfig({
   },
   projects: [{ name: 'chromium', use: { ...devices['Desktop Chrome'] } }],
   webServer: {
-    command: 'npm run dev',
+    command: 'npx vite --port 5173 --strictPort',
+    env: { VITE_E2E: '1' },
     url: 'http://localhost:5173',
-    reuseExistingServer: true,
+    reuseExistingServer: false,
     timeout: 60_000,
   },
 });
